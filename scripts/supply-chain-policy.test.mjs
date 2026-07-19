@@ -412,6 +412,7 @@ test("image gate pins scanner, database, and networkless scan authority", () => 
     "find /usr/share/nginx/html -type f",
     'docker pull "$scanner_image"',
     "docker buildx create --driver-opt image=$buildkit_builder_image",
+    '--user "$scanner_user"',
     "TRIVY_CACHE_DIR=/tmp/trivy",
     "target=/tmp/trivy",
     "verify-scanner-version",

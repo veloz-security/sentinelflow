@@ -13,7 +13,7 @@ fail() {
   exit 1
 }
 
-for command in awk docker find grep install mktemp node shasum tar; do
+for command in awk docker find grep id install mktemp node shasum tar; do
   command -v "$command" >/dev/null 2>&1 ||
     fail "required tool is unavailable: $command"
 done
@@ -25,6 +25,7 @@ scanner_image="aquasec/trivy:0.70.0@sha256:be1190afcb28352bfddc4ddeb71470835d164
 buildkit_builder_image="moby/buildkit:v0.23.2@sha256:ddd1ca44b21eda906e81ab14a3d467fa6c39cd73b9a39df1196210edcb8db59e"
 scanner_database="ghcr.io/aquasecurity/trivy-db:2@sha256:dfb24f192c02d06a1c467c87177b61e67bfb816d86b6d8d55d52e29329f83035"
 prometheus_image="prom/prometheus:v3.13.1-distroless@sha256:214f8427c8fba80c327bb94a75feb802ae12f2d6ca30812aa6e7d22f09bbea80"
+scanner_user="$(id -u):$(id -g)"
 # These are verification-only receipt digests, not activation capabilities or
 # runtime authority. The migration runner validates only their strict receipt
 # file contract and pins them in the disposable image-gate database.
@@ -351,6 +352,7 @@ containers+=("$scanner_db_container")
 # /tmp so both Docker Desktop and hosted Linux engines can materialize it
 # without needing to create a missing intermediate directory beneath /root.
 docker run --rm --name "$scanner_db_container" \
+  --user "$scanner_user" \
   --cap-drop ALL \
   --security-opt no-new-privileges:true \
   --read-only \
@@ -405,6 +407,7 @@ scan_image() {
   scan_container="sentinelflow-trivy-scan-$kind-$run_id"
   containers+=("$scan_container")
   docker run --rm --name "$scan_container" \
+    --user "$scanner_user" \
     --network none \
     --cap-drop ALL \
     --security-opt no-new-privileges:true \
@@ -431,6 +434,7 @@ scan_image() {
   sbom_container="sentinelflow-trivy-sbom-$kind-$run_id"
   containers+=("$sbom_container")
   docker run --rm --name "$sbom_container" \
+    --user "$scanner_user" \
     --network none \
     --cap-drop ALL \
     --security-opt no-new-privileges:true \
