@@ -8,7 +8,7 @@
 
 SentinelFlow는 architecture readiness에서 integrated implementation과 release stabilization 단계로 이동했다. Gateway-first data plane, control-plane service, database, administrator UI, dispatcher/executor boundary, recovery/export/observability tooling 및 test harness가 shared workspace에 존재한다. 하지만 아직 complete v0.1 release를 주장하지 않는다.
 
-Tasklist completion은 code 존재보다 엄격하다. 현재 모든 deliverable과 prerequisite를 충족한 항목은 `M0-001`, `M0-002`, `M0-009`, `M0-015`, `M0-017`, `M0-019`뿐이다. Commit `d66c4b8a4842ad4226cb741e35331ba5b9068520`는 publish된 baseline이며 외부 clean clone이 `make check`를 통과했다. Post-repair CI rerun은 아직 pending이고 M0가 완료되지 않았으므로 local implementation evidence가 강한 항목도 downstream M1–M10 checkbox는 open으로 유지한다.
+Tasklist completion은 code 존재보다 엄격하다. 현재 모든 deliverable과 prerequisite를 충족한 항목은 `M0-001`, `M0-002`, `M0-009`, `M0-015`, `M0-017`, `M0-019`뿐이다. Commit `d66c4b8a4842ad4226cb741e35331ba5b9068520`는 publish된 baseline이며 외부 clean clone이 `make check`를 통과했다. Hosted CI run `29696139988`은 implementation checkpoint `5ef870155bc59e6ac3c30279a7cd8be8d0249887`에서 10개 shard를 모두 통과했지만 `M0-006`과 `M0-008`은 `M0-003`과 `M0-007`이 unchecked prerequisite이므로 unchecked로 유지한다. M0가 완료되지 않았으므로 local implementation evidence가 강한 항목도 downstream M1–M10 checkbox는 open으로 유지한다.
 
 ## 2. 동결된 구현 기준선
 
@@ -58,17 +58,17 @@ AI contract는 공식 [`gpt-5.6-sol` model page](https://developers.openai.com/a
 | Gate | 관찰 결과 | Qualification boundary |
 | --- | --- | --- |
 | Host/toolchain | `Darwin 24.6.0 arm64`, Go `1.25.12`, Node `24.13.0`, npm `11.6.2`, Docker client/server `29.4.0`, Compose `5.1.2` | Development host이며 native Linux release host가 아님 |
-| Backend | 88 package에서 formatting, vet, staticcheck, test 및 모든 `cmd` build 통과, publish된 baseline의 clean clone도 `make check` 통과 | Post-repair GitHub Actions CI run은 pending |
+| Backend | 88 package에서 formatting, vet, staticcheck, test 및 모든 `cmd` build 통과, publish된 baseline의 clean clone도 `make check` 통과, hosted CI run `29696139988`이 backend shard 통과 | Native Linux release-host qualification은 별도임 |
 | Contract/security | Contract vector, secret scan, `govulncheck`, npm audit 통과 | Runtime lifecycle 또는 Compose mutation E2E를 대체하지 않음 |
-| Database | Final root PostgreSQL 17.10 verifier가 fresh/restart-noop·`33→24→33`·ACL·sqlc, recurring-content/fresh-authority, API-only terminal-attempt projection, raw-table denial, mismatch fail-closed behavior 및 queued stale-analysis provider-free supersession/true-missing dead-letter case를 포함한 33 migration/72 table을 통과했고 publish된 baseline의 clean clone도 `make check` 통과 | Post-repair GitHub Actions CI run은 pending |
+| Database | Final root PostgreSQL 17.10 verifier가 fresh/restart-noop·`33→24→33`·ACL·sqlc, recurring-content/fresh-authority, API-only terminal-attempt projection, raw-table denial, mismatch fail-closed behavior 및 queued stale-analysis provider-free supersession/true-missing dead-letter case를 포함한 33 migration/72 table을 통과했고 publish된 baseline의 clean clone도 `make check` 통과, hosted CI run `29696139988`이 database shard 통과 | Native Linux release-host qualification은 별도임 |
 | Recovery/export/observability | Backup/restore가 63.742초에 통과했고 minimized export, Prometheus configuration/runtime 및 alert check도 통과함 | Full Compose lifecycle E2E를 대체하지 않음 |
 | nftables | Disposable namespace preflight와 executor targeted unit/race/integration/security check 통과. Foreign-state preservation과 verify-only restart behavior evidence 존재 | macOS Docker VM evidence는 native host-nft invariance 또는 default real-expiry release run을 인증하지 않음 |
 | Performance | Fixed 5-second `500 RPS` smoke mode와 outage correctness 통과 | 24 GB macOS host에서는 five-minute 4 GB reference-host release gate를 qualification할 수 없음 |
 | Frontend local | Final root verification이 CSP-safe error decoding, exact deployment-header validation, every-production-chunk dynamic-code-generation scan을 포함한 Vitest file 39개/test 363개와 production-CSP Chromium 1/1을 보고함 | macOS fast Compose browser runner는 active/revoked action state를 통과했지만 complete release-level browser certification과 screenshot은 pending이며 frontend는 backend/API completion과 분리됨 |
 | E2E harness | Root rerun이 long coverage wait 전 migrated-PostgreSQL evidence-SQL parse/zero-row preflight를 포함한 demo helper 39/39와 shell-contract 6/6(합계 46 test)을 통과함 | 이 evidence는 default native expiry, native host-ruleset 및 release qualification을 대체하지 않음 |
-| Supply chain | 세 번째 full run에서 static 18/18, package 354개/relationship 354개의 reproducible source SBOM, reproducible backend/PostgreSQL/Web image, runtime fail-fast probe, shipped image 4개 대상 frozen Trivy/SPDX/evidence binding과 CRITICAL 0개, PostgreSQL fresh/migrate/restart/wrong-owner-fail-closed lifecycle 및 cleanup 통과, publish된 baseline의 clean clone도 `make check` 통과 | Post-repair GitHub Actions CI run은 pending |
+| Supply chain | 세 번째 full run에서 static 18/18, package 354개/relationship 354개의 reproducible source SBOM, reproducible backend/PostgreSQL/Web image, runtime fail-fast probe, shipped image 4개 대상 frozen Trivy/SPDX/evidence binding과 CRITICAL 0개, PostgreSQL fresh/migrate/restart/wrong-owner-fail-closed lifecycle 및 cleanup 통과, publish된 baseline의 clean clone도 `make check` 통과, hosted CI run `29696139988`이 supply-chain shard 통과 | Native Linux release-host qualification은 별도임 |
 | OpenAI smoke | Disabled 및 missing-key path가 network request 없이 fail closed | Billable live request, provider response, model access 또는 live Structured Output을 주장하지 않음 |
-| Compose E2E | RUN25 fast(log SHA-256 `4702571db361b411449dadc789995348f0254f0a07a1a2aefda36a79b070b877`)가 pinned-image start/health, authority/private-origin isolation, exact 305-second coverage, 다섯 scenario 전체, stable binding, exact HIL add/inspect/revoke, digest-mismatch rejection, outage forwarding, restart/reconciliation 및 cleanup을 통과했고 이후 macOS `--run-browser-qa` 실행은 revoked phase의 고정 61초 pre-hash login-window 대기 후 active/revoked browser QA를 통과함 | `--fast`는 의도적으로 action을 revoke하고 macOS에서 실행되므로 native kernel expiry와 host-ruleset invariance는 아직 미검증이며 clean-checkout/CI도 pending임 |
+| Compose E2E | RUN25 fast(log SHA-256 `4702571db361b411449dadc789995348f0254f0a07a1a2aefda36a79b070b877`)가 pinned-image start/health, authority/private-origin isolation, exact 305-second coverage, 다섯 scenario 전체, stable binding, exact HIL add/inspect/revoke, digest-mismatch rejection, outage forwarding, restart/reconciliation 및 cleanup을 통과했고 이후 macOS `--run-browser-qa` 실행은 revoked phase의 고정 61초 pre-hash login-window 대기 후 active/revoked browser QA를 통과했으며 hosted CI run `29696139988`은 frontend functional-browser와 pinned Linux visual-baseline gate를 통과함 | `--fast`는 의도적으로 action을 revoke하고 macOS에서 실행되므로 native kernel expiry와 host-ruleset invariance는 아직 미검증임 |
 
 기존 ignored local credential과 generated demo-secret path는 출력하거나 문서에 복사하거나 billable call에 사용하지 않았다.
 
@@ -76,7 +76,7 @@ AI contract는 공식 [`gpt-5.6-sol` model page](https://developers.openai.com/a
 
 | Input 또는 gate | 필요한 용도 | 현재 상태 |
 | --- | --- | --- |
-| Committed clean baseline 및 CI rerun | `M0-006`, `M0-008`, downstream reproducibility, final merge train | Publish된 commit `d66c4b8a4842ad4226cb741e35331ba5b9068520`; 외부 clean clone이 전후 clean 상태였고 `make check`를 통과했다. Post-repair CI rerun은 남아 있음 |
+| Committed clean baseline 및 CI | `M0-006`, `M0-008`, downstream reproducibility, final merge train | Publish된 commit `d66c4b8a4842ad4226cb741e35331ba5b9068520`; 외부 clean clone이 전후 clean 상태였고 `make check`를 통과했다. Hosted CI run `29696139988`은 `5ef870155bc59e6ac3c30279a7cd8be8d0249887`에서 10개 shard를 모두 통과했으며 Tasklist prerequisite completion은 별도임 |
 | Live OpenAI opt-in result | `M0-005` callable-model/runtime evidence | Command는 존재하고 disabled/missing 상태에서 fail closed하지만 live call은 실행하지 않음 |
 | Dedicated 4 GB Linux runner 또는 VM | Native host-nft diff, real kernel expiry, capability/recovery proof, five-minute performance | 선택하거나 검증하지 않음 |
 | Compose mutation E2E | Exact signed-history activation → challenge/HIL → dispatcher → add/inspect/revoke/expiry lifecycle | RUN25 fast가 add, signed inspect, exact revoke, outage forwarding, restart/reconciliation 및 cleanup을 증명했고 이후 macOS browser runner가 active/revoked UI state를 증명했다. Fast mode는 kernel expiry 대신 revoke하므로 default native-expiry run은 pending임 |
@@ -89,7 +89,7 @@ AI contract는 공식 [`gpt-5.6-sol` model page](https://developers.openai.com/a
 
 ## 6. 현재 구현 wave
 
-Active wave는 RUN25 이후 release stabilization이다. Final root backend, PostgreSQL 17.10 33-migration/72-table, frontend CSP/unit/browser, contract-vector 및 E2E helper/shell gate에 targeted evidence가 있고 publish된 baseline의 clean-clone `make check` evidence도 있다. 다음 목표는 post-repair CI rerun, Linux에서 serialized default native-expiry run, host-ruleset/performance qualification, release screenshot 및 release packaging이며 fast Compose evidence는 native expiry를 인증하지 않는다. Detailed roster, wave ledger, ownership 및 final gate는 [WBS.ko.md](./WBS.ko.md)에 있다.
+Active wave는 RUN25 이후 release stabilization이다. Final root backend, PostgreSQL 17.10 33-migration/72-table, frontend CSP/unit/browser, contract-vector 및 E2E helper/shell gate에 targeted evidence가 있고 publish된 baseline의 clean-clone `make check` evidence와 hosted CI run `29696139988`의 `5ef870155bc59e6ac3c30279a7cd8be8d0249887` 대상 10개 shard 통과도 있다. 다음 목표는 Linux에서 serialized default native-expiry run, host-ruleset/performance qualification, release screenshot, live OpenAI opt-in 및 release packaging이며 fast Compose evidence는 native expiry를 인증하지 않는다. Detailed roster, wave ledger, ownership 및 final gate는 [WBS.ko.md](./WBS.ko.md)에 있다.
 
 현재 release classification은 **Still implementing**이다. 이 문서는 branch, commit, push, pull request, tag, deployment, billable OpenAI call 또는 external submission을 authorize하지 않는다.
 

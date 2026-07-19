@@ -5,7 +5,7 @@ Explainable AI security gateway with evidence-bound, administrator-approved resp
 SentinelFlow is an explainable AI security gateway that observes web traffic through an inline reverse proxy, correlates structured evidence, and applies temporary response actions only after strict validation and administrator HIL approval.
 
 > Status: **Still implementing.** The Gateway-first v0.1 implementation, contracts, database, control-plane services, administrator UI, isolated executor, and test harnesses exist and pass the verified local gates listed below.
-> Current implementation evidence includes RUN25 fast Compose E2E (log SHA-256 `4702571db361b411449dadc789995348f0254f0a07a1a2aefda36a79b070b877`) and a later macOS execution of `./scripts/check-demo-e2e.sh --fast --browser-qa-hold-seconds 900 --run-browser-qa`. They passed the exact active/revoked browser flows, signed inspect, digest-mismatch fail-closed revoke, control-plane outage forwarding, restart/reconciliation, and cleanup. Release qualification is still open: the default native-expiry run, native host-nft invariance, clean-checkout/CI reproduction, a billable OpenAI smoke call, release screenshots, and the five-minute 4 GB performance gate have not passed.
+> Current implementation evidence includes RUN25 fast Compose E2E (log SHA-256 `4702571db361b411449dadc789995348f0254f0a07a1a2aefda36a79b070b877`), a later macOS execution of `./scripts/check-demo-e2e.sh --fast --browser-qa-hold-seconds 900 --run-browser-qa`, and successful [hosted CI run 29696139988](https://github.com/devwooops/sentinelflow/actions/runs/29696139988) for implementation checkpoint `5ef870155bc59e6ac3c30279a7cd8be8d0249887`. They passed the exact active/revoked browser flows, signed inspect, digest-mismatch fail-closed revoke, control-plane outage forwarding, restart/reconciliation, cleanup, all hosted quality shards, frontend functional-browser tests, and the pinned Linux visual baseline. Release qualification is still open: the default native-expiry run, native host-nft invariance, a billable OpenAI smoke call, release screenshots, and the five-minute 4 GB performance gate have not passed.
 
 ---
 
@@ -520,7 +520,7 @@ Verified on the current development workspace:
 Still pending or not qualified:
 
 - serialized RUN25 of `./scripts/check-demo-e2e.sh --fast --browser-qa-hold-seconds 900` (log SHA-256 `4702571db361b411449dadc789995348f0254f0a07a1a2aefda36a79b070b877`) passed pinned-image startup, authority/private-origin isolation, exact 305-second Gateway/auth coverage, all five scenarios, stable incident/policy bindings, exact HIL add, signed inspect, digest-mismatched revoke rejection, exact revoke, control-plane outage forwarding without a new block, long-running service recovery, dispatcher/executor/Gateway restart reconciliation, and exact-project cleanup. A later macOS run with `--run-browser-qa` also passed active and revoked browser QA. The revoked phase waits 61 seconds before the pre-hash login-window check; it does not retry a login or change any login-limit setting. This is non-release evidence because `--fast` revokes the action and macOS cannot certify native host nftables;
-- these fast runs do not complete the separate frontend/UI/UX release task, clean-checkout/CI reproduction, default native-expiry run, native host-nft invariance, billable live OpenAI smoke, release screenshots, or the five-minute 4 GB performance gate;
+- these fast runs do not complete the separate frontend/UI/UX release task, default native-expiry run, native host-nft invariance, billable live OpenAI smoke, release screenshots, or the five-minute 4 GB performance gate;
 - default `./scripts/check-demo-e2e.sh`, including its separate native kernel-expiry wait;
 - a billable opt-in live OpenAI call;
 - the five-minute `500 RPS` performance release gate on a documented 4 GB Linux reference host and native host-nft invariance evidence.
@@ -589,7 +589,7 @@ Expected v0.1 limitations include:
 - signed demo-history activation lasts one hour and has no in-place renewal; expiry requires a complete disposable profile/volume reset and a newly sealed run;
 - the demo importer and activator roles are PostgreSQL cluster-global, so the reference lifecycle assumes one isolated SentinelFlow demo profile per PostgreSQL cluster and rejects unsafe cross-database role state.
 
-The current release candidate is additionally limited by the unqualified default native-expiry run, native host-nft invariance, clean-checkout/CI reproduction, absence of a live OpenAI result, and lack of a qualifying 4 GB Linux release host.
+The current release candidate is additionally limited by the unqualified default native-expiry run, native host-nft invariance, absence of a live OpenAI result, and lack of a qualifying 4 GB Linux release host.
 
 SentinelFlow is an implementation-oriented reference security gateway, not a production replacement for a mature WAF, SIEM, IDS, IPS, reverse proxy, or professional security review.
 
