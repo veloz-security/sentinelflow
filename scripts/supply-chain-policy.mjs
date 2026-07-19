@@ -732,6 +732,56 @@ function fixedBindMount(source, target, readOnly = true) {
   };
 }
 
+// Compose implementations differ in whether their normalized `config --format
+// json` output retains an explicitly configured false boolean. The source file
+// policy below preserves the authoring requirement; the runtime policy accepts
+// only the two lossless representations of that requirement: `{}` or
+// `{ create_host_path: false }`. It never accepts an explicit true value.
+const reviewedComposeSourceBinds = Object.freeze([
+  Object.freeze({
+    source: "./postgres/pg_hba.conf",
+    target: "/etc/postgresql/sentinelflow-pg_hba.conf",
+  }),
+  Object.freeze({
+    source: "./postgres/init.sh",
+    target: "/opt/sentinelflow/init.sh",
+  }),
+  Object.freeze({ source: "../db/migrations", target: "/migrations" }),
+  Object.freeze({
+    source: "./postgres/demo-activation-handoff.sh",
+    target: "/opt/sentinelflow/demo-activation-handoff.sh",
+  }),
+  Object.freeze({
+    source: "./observability/prometheus.yml",
+    target: "/etc/prometheus/prometheus.yml",
+  }),
+  Object.freeze({
+    source: "./observability/control-plane-alerts.yaml",
+    target: "/etc/prometheus/control-plane-alerts.yaml",
+  }),
+]);
+
+function escapeRegularExpression(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+}
+
+export function validateComposeSourceBindPolicy(
+  text,
+  filename = "deployments/compose.yaml",
+) {
+  invariant(typeof text === "string", `${filename} must be text`);
+  for (const { source, target } of reviewedComposeSourceBinds) {
+    const expectedBlock = new RegExp(
+      `^\\s*- type: bind\\s*\\r?\\n\\s*source: ${escapeRegularExpression(source)}\\s*\\r?\\n\\s*target: ${escapeRegularExpression(target)}\\s*\\r?\\n\\s*read_only: true\\s*\\r?\\n\\s*bind:\\s*\\r?\\n\\s*create_host_path: false\\s*$`,
+      "mu",
+    );
+    invariant(
+      expectedBlock.test(text),
+      `${filename} must explicitly set bind.create_host_path: false for ${target}`,
+    );
+  }
+}
+
 function dynamicBindMount(sourceGroup, target, readOnly = true) {
   return { type: "bind", sourceGroup, target, readOnly };
 }
@@ -1351,8 +1401,13 @@ function validateComposeMounts(services) {
         mount[expected.type] &&
           typeof mount[expected.type] === "object" &&
           !Array.isArray(mount[expected.type]) &&
-          JSON.stringify(mount[expected.type]) ===
-            JSON.stringify(expected[expected.type] || {}),
+          (expected.type === "bind" &&
+          expected.bind?.create_host_path === false
+            ? Object.keys(mount.bind).length === 0 ||
+              (Object.keys(mount.bind).length === 1 &&
+                mount.bind.create_host_path === false)
+            : JSON.stringify(mount[expected.type]) ===
+              JSON.stringify(expected[expected.type] || {})),
         `${serviceName} mount options differ for ${expected.target}`,
       );
       if (expected.type === "volume") {
@@ -2486,6 +2541,9 @@ function checkPinnedToolInvocations() {
 }
 
 function checkRepositoryPolicy() {
+  validateComposeSourceBindPolicy(
+    fs.readFileSync(path.join(repositoryRoot, "deployments/compose.yaml"), "utf8"),
+  );
   const workflowFiles = listFiles(".github/workflows", (filename) =>
     /\.ya?ml$/u.test(filename),
   );

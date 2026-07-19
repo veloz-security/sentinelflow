@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import test from "node:test";
 
 import {
@@ -20,6 +21,7 @@ import {
   reviewedSensitiveEnvironmentOwners,
   validateActionReference,
   validateComposeRuntimePolicy,
+  validateComposeSourceBindPolicy,
   validateImageArchiveBinding,
   validateImageGateText,
   validateImageInspection,
@@ -1216,6 +1218,16 @@ test("Compose runtime policy freezes complete mount and top-level volume invento
     /demo-activation-handoff mount options differ/u,
   );
 
+  const composeNormalizerOmittingFalse = validComposeRuntime();
+  delete serviceMount(
+    composeNormalizerOmittingFalse,
+    "demo-activation-handoff",
+    "/opt/sentinelflow/demo-activation-handoff.sh",
+  ).bind.create_host_path;
+  assert.doesNotThrow(() =>
+    validateComposeRuntimePolicy(composeNormalizerOmittingFalse),
+  );
+
   const crossedHandoffReceipt = validComposeRuntime();
   serviceMount(
     crossedHandoffReceipt,
@@ -1301,6 +1313,21 @@ test("Compose runtime policy freezes complete mount and top-level volume invento
   assert.throws(
     () => validateComposeRuntimePolicy(namedVolumeBindAlias),
     /bind source aliases a reviewed named volume/u,
+  );
+});
+
+test("Compose source policy requires reviewed fixed binds to disable host path creation", () => {
+  const composeSource = fs.readFileSync(
+    new URL("../deployments/compose.yaml", import.meta.url),
+    "utf8",
+  );
+  assert.doesNotThrow(() => validateComposeSourceBindPolicy(composeSource));
+  assert.throws(
+    () =>
+      validateComposeSourceBindPolicy(
+        composeSource.replace("create_host_path: false", "create_host_path: true"),
+      ),
+    /must explicitly set bind\.create_host_path: false/u,
   );
 });
 
