@@ -347,12 +347,16 @@ node scripts/supply-chain-policy.mjs verify-scanner-version "$scanner_version"
 
 scanner_db_container="sentinelflow-trivy-db-$run_id"
 containers+=("$scanner_db_container")
+# The Trivy image has a read-only /root. Put the explicit cache mount below
+# /tmp so both Docker Desktop and hosted Linux engines can materialize it
+# without needing to create a missing intermediate directory beneath /root.
 docker run --rm --name "$scanner_db_container" \
   --cap-drop ALL \
   --security-opt no-new-privileges:true \
   --read-only \
   --tmpfs /tmp:rw,noexec,nosuid,nodev,size=256m \
-  --mount "type=bind,source=$temporary/cache,target=/root/.cache/trivy" \
+  --env TRIVY_CACHE_DIR=/tmp/trivy \
+  --mount "type=bind,source=$temporary/cache,target=/tmp/trivy" \
   "$scanner_image" image \
   --download-db-only \
   --db-repository "$scanner_database" \
@@ -406,7 +410,8 @@ scan_image() {
     --security-opt no-new-privileges:true \
     --read-only \
     --tmpfs /tmp:rw,noexec,nosuid,nodev,size=512m \
-    --mount "type=bind,source=$temporary/cache,target=/root/.cache/trivy" \
+    --env TRIVY_CACHE_DIR=/tmp/trivy \
+    --mount "type=bind,source=$temporary/cache,target=/tmp/trivy" \
     --mount "type=bind,source=$work_directory,target=/work" \
     "$scanner_image" image \
     --input /work/image.tar \
@@ -431,7 +436,8 @@ scan_image() {
     --security-opt no-new-privileges:true \
     --read-only \
     --tmpfs /tmp:rw,noexec,nosuid,nodev,size=512m \
-    --mount "type=bind,source=$temporary/cache,target=/root/.cache/trivy" \
+    --env TRIVY_CACHE_DIR=/tmp/trivy \
+    --mount "type=bind,source=$temporary/cache,target=/tmp/trivy" \
     --mount "type=bind,source=$work_directory,target=/work" \
     "$scanner_image" image \
     --input /work/image.tar \

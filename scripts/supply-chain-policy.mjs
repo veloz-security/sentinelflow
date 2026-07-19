@@ -2142,6 +2142,8 @@ export function validateImageGateText(text, filename = "<image-gate>") {
       text.includes('docker buildx create') &&
       text.includes('image=$buildkit_builder_image') &&
       text.includes('docker pull "$scanner_image"') &&
+      text.includes("TRIVY_CACHE_DIR=/tmp/trivy") &&
+      text.includes("target=/tmp/trivy") &&
       text.includes("verify-scanner-version") &&
       text.includes("verify-scanner-db"),
     `${filename} does not verify immutable scanner acquisition`,
