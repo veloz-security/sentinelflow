@@ -61,6 +61,7 @@ jobs:
       - run: npx playwright install --with-deps chromium firefox webkit
         working-directory: web
       - run: npm --prefix web run verify
+      - run: npm --prefix web run test:browser:visual:linux
 
   supply-chain:
     runs-on: ubuntu-24.04

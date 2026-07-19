@@ -2,7 +2,10 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests',
-  testIgnore: 'csp-production.spec.ts',
+  testIgnore:
+    process.env.SENTINELFLOW_VISUAL_BASELINE === '1'
+      ? 'csp-production.spec.ts'
+      : ['csp-production.spec.ts', 'visual-stability.spec.ts'],
   timeout: 60_000,
   fullyParallel: true,
   forbidOnly: true,

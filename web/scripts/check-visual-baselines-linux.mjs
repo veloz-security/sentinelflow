@@ -77,7 +77,7 @@ cd /work/web
 npm ci --ignore-scripts --no-audit --no-fund
 npx playwright --version
 npm run build
-CI=1 npx playwright test tests/visual-stability.spec.ts --reporter=list`;
+CI=1 SENTINELFLOW_VISUAL_BASELINE=1 npx playwright test tests/visual-stability.spec.ts --reporter=list`;
 
 function isForbiddenName(name) {
   const normalizedName = name.toLowerCase();

@@ -22,6 +22,7 @@ check-export:
 check-frontend:
 	npm --prefix web ci
 	npm --prefix web run verify
+	npm --prefix web run test:browser:visual:linux
 
 check-gateway-performance:
 	./scripts/check-gateway-performance.sh
