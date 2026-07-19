@@ -135,7 +135,12 @@ services:
       DEMO_HISTORY_CLOCK_AT: ${DEMO_HISTORY_CLOCK_AT}
       DEMO_HISTORY_IMPACT_SOURCE_HEALTH_DIGEST: ${DEMO_HISTORY_IMPACT_SOURCE_HEALTH_DIGEST}
     volumes:
-      - ${DEMO_HISTORY_SOURCE:-../data/demo-history}:/run/sentinelflow-demo-history:ro
+      - type: bind
+        source: ${DEMO_HISTORY_SOURCE:-../data/demo-history}
+        target: /run/sentinelflow-demo-history
+        read_only: true
+        bind:
+          create_host_path: false
     networks:
       control:
         ipv4_address: 172.32.0.8
@@ -207,7 +212,12 @@ services:
         cmp -s /source/demo-history-analysis-activation.capability /volumes/demo-history-analysis-activation/activation-capability
         cmp -s /source/demo-history-validation-activation.capability /volumes/demo-history-validation-activation/activation-capability
     volumes:
-      - ${DEMO_SECRETS_SOURCE:-../secrets/demo}:/source:ro
+      - type: bind
+        source: ${DEMO_SECRETS_SOURCE:-../secrets/demo}
+        target: /source
+        read_only: true
+        bind:
+          create_host_path: false
       - gateway-state:/volumes/gateway-state
       - auth-state:/volumes/auth-state
       - executor-state:/volumes/executor-state
@@ -275,7 +285,12 @@ services:
       DEMO_HISTORY_ANALYSIS_ACTIVATION_SECRET_FILE: ${DEMO_HISTORY_ANALYSIS_ACTIVATION_SECRET_FILE}
       DEMO_HISTORY_VALIDATION_ACTIVATION_SECRET_FILE: ${DEMO_HISTORY_VALIDATION_ACTIVATION_SECRET_FILE}
     volumes:
-      - ${DEMO_HISTORY_SOURCE:-../data/demo-history}:/run/sentinelflow-demo-history:ro
+      - type: bind
+        source: ${DEMO_HISTORY_SOURCE:-../data/demo-history}
+        target: /run/sentinelflow-demo-history
+        read_only: true
+        bind:
+          create_host_path: false
       - demo-history-analysis-activation:/run/secrets/sentinelflow-demo-history-analysis:ro
       - demo-history-validation-activation:/run/secrets/sentinelflow-demo-history-validation:ro
     networks:
@@ -554,7 +569,12 @@ services:
       DEMO_HISTORY_VALIDATION_ACTIVATION_SECRET_FILE: ${DEMO_HISTORY_VALIDATION_ACTIVATION_SECRET_FILE}
     volumes:
       - validator-socket:/run/sentinelflow-validator:ro
-      - ${DEMO_HISTORY_SOURCE:-../data/demo-history}:/run/sentinelflow-demo-history:ro
+      - type: bind
+        source: ${DEMO_HISTORY_SOURCE:-../data/demo-history}
+        target: /run/sentinelflow-demo-history
+        read_only: true
+        bind:
+          create_host_path: false
       - demo-history-validation-activation:/run/secrets/sentinelflow-demo-history-validation:ro
     networks:
       control:
@@ -740,7 +760,12 @@ services:
       retries: 12
       start_period: 5s
     volumes:
-      - ${DEMO_HISTORY_SOURCE:-../data/demo-history}:/run/sentinelflow-demo-history:ro
+      - type: bind
+        source: ${DEMO_HISTORY_SOURCE:-../data/demo-history}
+        target: /run/sentinelflow-demo-history
+        read_only: true
+        bind:
+          create_host_path: false
       - demo-history-analysis-activation:/run/secrets/sentinelflow-demo-history-analysis:ro
     networks:
       control:
@@ -773,7 +798,12 @@ services:
       DEMO_HISTORY_IMPACT_SOURCE_HEALTH_DIGEST: ${DEMO_HISTORY_IMPACT_SOURCE_HEALTH_DIGEST}
       DEMO_HISTORY_ANALYSIS_ACTIVATION_SECRET_FILE: ${DEMO_HISTORY_ANALYSIS_ACTIVATION_SECRET_FILE}
     volumes:
-      - ${DEMO_HISTORY_SOURCE:-../data/demo-history}:/run/sentinelflow-demo-history:ro
+      - type: bind
+        source: ${DEMO_HISTORY_SOURCE:-../data/demo-history}
+        target: /run/sentinelflow-demo-history
+        read_only: true
+        bind:
+          create_host_path: false
       - demo-history-analysis-activation:/run/secrets/sentinelflow-demo-history-analysis:ro
     networks:
       control:

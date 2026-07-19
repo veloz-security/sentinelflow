@@ -1329,6 +1329,16 @@ test("Compose source policy requires reviewed fixed binds to disable host path c
       ),
     /must explicitly set bind\.create_host_path: false/u,
   );
+  assert.throws(
+    () =>
+      validateComposeSourceBindPolicy(
+        composeSource.replace(
+          "source: ${DEMO_HISTORY_SOURCE:-../data/demo-history}\n        target: /run/sentinelflow-demo-history\n        read_only: true\n        bind:\n          create_host_path: false",
+          "source: ${DEMO_HISTORY_SOURCE:-../data/demo-history}\n        target: /run/sentinelflow-demo-history\n        read_only: true\n        bind:\n          create_host_path: true",
+        ),
+      ),
+    /must explicitly set bind\.create_host_path: false/u,
+  );
 });
 
 test("Compose runtime policy freezes demo history proof owners and dependency objects", () => {

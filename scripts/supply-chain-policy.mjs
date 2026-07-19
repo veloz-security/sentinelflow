@@ -741,23 +741,42 @@ const reviewedComposeSourceBinds = Object.freeze([
   Object.freeze({
     source: "./postgres/pg_hba.conf",
     target: "/etc/postgresql/sentinelflow-pg_hba.conf",
+    count: 1,
   }),
   Object.freeze({
     source: "./postgres/init.sh",
     target: "/opt/sentinelflow/init.sh",
+    count: 1,
   }),
-  Object.freeze({ source: "../db/migrations", target: "/migrations" }),
+  Object.freeze({
+    source: "../db/migrations",
+    target: "/migrations",
+    count: 1,
+  }),
   Object.freeze({
     source: "./postgres/demo-activation-handoff.sh",
     target: "/opt/sentinelflow/demo-activation-handoff.sh",
+    count: 1,
   }),
   Object.freeze({
     source: "./observability/prometheus.yml",
     target: "/etc/prometheus/prometheus.yml",
+    count: 1,
   }),
   Object.freeze({
     source: "./observability/control-plane-alerts.yaml",
     target: "/etc/prometheus/control-plane-alerts.yaml",
+    count: 1,
+  }),
+  Object.freeze({
+    source: "${DEMO_HISTORY_SOURCE:-../data/demo-history}",
+    target: "/run/sentinelflow-demo-history",
+    count: 5,
+  }),
+  Object.freeze({
+    source: "${DEMO_SECRETS_SOURCE:-../secrets/demo}",
+    target: "/source",
+    count: 1,
   }),
 ]);
 
@@ -770,20 +789,26 @@ export function validateComposeSourceBindPolicy(
   filename = "deployments/compose.yaml",
 ) {
   invariant(typeof text === "string", `${filename} must be text`);
-  for (const { source, target } of reviewedComposeSourceBinds) {
+  for (const { source, target, count } of reviewedComposeSourceBinds) {
     const expectedBlock = new RegExp(
       `^\\s*- type: bind\\s*\\r?\\n\\s*source: ${escapeRegularExpression(source)}\\s*\\r?\\n\\s*target: ${escapeRegularExpression(target)}\\s*\\r?\\n\\s*read_only: true\\s*\\r?\\n\\s*bind:\\s*\\r?\\n\\s*create_host_path: false\\s*$`,
-      "mu",
+      "gmu",
     );
     invariant(
-      expectedBlock.test(text),
+      [...text.matchAll(expectedBlock)].length === count,
       `${filename} must explicitly set bind.create_host_path: false for ${target}`,
     );
   }
 }
 
 function dynamicBindMount(sourceGroup, target, readOnly = true) {
-  return { type: "bind", sourceGroup, target, readOnly };
+  return {
+    type: "bind",
+    sourceGroup,
+    target,
+    readOnly,
+    bind: { create_host_path: false },
+  };
 }
 
 // Every service mount is frozen, not only the known secret destinations. This
