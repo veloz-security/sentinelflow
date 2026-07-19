@@ -175,7 +175,11 @@ INSERT INTO demo_history_runtime_activations (
     '2026-07-19 00:00:00+00', '2026-07-19 00:00:00+00',
     '2026-07-18 00:00:00+00', '2026-07-19 00:00:00+00',
     'sha256:e2493dd1befd0d0a8ed321b6ff6ee3c0078a91692197c6b90c65d728e17cb1e3',
-    clock_timestamp(), clock_timestamp() + interval '1 hour'
+    -- The lifetime constraint requires byte-exact timestamp equality after
+    -- adding one hour. `clock_timestamp()` is volatile, so two invocations
+    -- can differ by a microsecond on a clean CI database. This fixture needs
+    -- the stable statement timestamp, not two independent wall-clock reads.
+    statement_timestamp(), statement_timestamp() + interval '1 hour'
 );
 
 CREATE OR REPLACE FUNCTION pg_temp.make_demo_stale_job(
