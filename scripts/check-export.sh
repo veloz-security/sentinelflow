@@ -187,7 +187,11 @@ grep -Fq '019b0000-0000-4000-8000-00000000e101' "$temporary/export.json" ||
 grep -Fq 'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' \
   "$temporary/export.json" || fail 'export omitted the source audit digest'
 
-mode="$(stat -f '%Lp' "$temporary/export.json" 2>/dev/null || stat -c '%a' "$temporary/export.json")"
+if [[ "$(uname -s)" == 'Darwin' ]]; then
+  mode="$(stat -f '%Lp' "$temporary/export.json")"
+else
+  mode="$(stat -c '%a' "$temporary/export.json")"
+fi
 [[ "$mode" == "600" ]] || fail 'export file is not mode 0600'
 
 cp "$temporary/export.json" "$temporary/tampered.json"

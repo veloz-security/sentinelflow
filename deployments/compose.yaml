@@ -56,7 +56,12 @@ services:
       - /var/run/postgresql:rw,noexec,nosuid,nodev,size=4m,mode=0750,uid=70,gid=70
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./postgres/pg_hba.conf:/etc/postgresql/sentinelflow-pg_hba.conf:ro
+      - type: bind
+        source: ./postgres/pg_hba.conf
+        target: /etc/postgresql/sentinelflow-pg_hba.conf
+        read_only: true
+        bind:
+          create_host_path: false
     networks:
       control:
         ipv4_address: 172.32.0.2
@@ -95,8 +100,18 @@ services:
     tmpfs:
       - /tmp:rw,noexec,nosuid,nodev,size=8m,mode=1777
     volumes:
-      - ./postgres/init.sh:/opt/sentinelflow/init.sh:ro
-      - ../db/migrations:/migrations:ro
+      - type: bind
+        source: ./postgres/init.sh
+        target: /opt/sentinelflow/init.sh
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ../db/migrations
+        target: /migrations
+        read_only: true
+        bind:
+          create_host_path: false
       - demo-history-capability-receipts:/run/sentinelflow-demo-history-capability-receipts:ro
     networks:
       control:
@@ -230,7 +245,12 @@ services:
     tmpfs:
       - /tmp:rw,noexec,nosuid,nodev,size=8m,mode=1777
     volumes:
-      - ./postgres/demo-activation-handoff.sh:/opt/sentinelflow/demo-activation-handoff.sh:ro
+      - type: bind
+        source: ./postgres/demo-activation-handoff.sh
+        target: /opt/sentinelflow/demo-activation-handoff.sh
+        read_only: true
+        bind:
+          create_host_path: false
       - demo-history-capability-receipts:/run/sentinelflow-demo-history-capability-receipts:ro
     networks:
       control:
@@ -672,8 +692,18 @@ services:
       retries: 12
       start_period: 5s
     volumes:
-      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./observability/control-plane-alerts.yaml:/etc/prometheus/control-plane-alerts.yaml:ro
+      - type: bind
+        source: ./observability/prometheus.yml
+        target: /etc/prometheus/prometheus.yml
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./observability/control-plane-alerts.yaml
+        target: /etc/prometheus/control-plane-alerts.yaml
+        read_only: true
+        bind:
+          create_host_path: false
     networks:
       observability:
         ipv4_address: 172.29.0.4

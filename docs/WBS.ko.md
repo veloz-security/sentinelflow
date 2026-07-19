@@ -12,7 +12,7 @@
 
 ## 1. 재기준화 결정
 
-2026-07-18 Gateway-first queue는 실행되지 않은 2026-07-17 log-first queue를 대체했다. 이후 Gateway-first swarm이 shared workspace에 integrated implementation과 local verification evidence를 만들었지만 tree는 아직 committed clean-checkout baseline이 아니다. 기존 Syslog/parser Task ID의 의미는 P2 선택형 adapter로 보존하지만 이번 5일 queue와 모든 release gate에서 제외한다.
+2026-07-18 Gateway-first queue는 실행되지 않은 2026-07-17 log-first queue를 대체했다. 이후 Gateway-first swarm이 shared workspace에 integrated implementation과 local verification evidence를 만들었다. Commit `d66c4b8a4842ad4226cb741e35331ba5b9068520`는 publish된 baseline이고 외부 clean clone이 `make check`를 통과했으며 post-repair CI rerun은 pending이다. 기존 Syslog/parser Task ID의 의미는 P2 선택형 adapter로 보존하지만 이번 5일 queue와 모든 release gate에서 제외한다.
 
 릴리스는 하나의 fixed private upstream 앞에 inline으로 놓이지만 unprivileged인 reverse-proxy data plane을 구현한다. HTTP request를 직접 관측하고 privacy-minimized event를 비동기로 방출하며 narrow authenticated application-auth event를 받은 뒤 기존 deterministic detection, evidence-bound AI command, ordered validation, exact-artifact administrator HIL, isolated nftables executor model을 유지한다. 이 프로젝트는 general-purpose origin server, raw-packet IPS 또는 adaptive L7 enforcement system이 아니다.
 
@@ -39,7 +39,7 @@ Snapshot: 2026-07-20 (Asia/Seoul). 90-leaf table은 dependency 및 ownership pla
 | --- | --- | --- | --- |
 | `ROOT` | Orchestration, integration, release control | Shared contract, final gate, cross-package decision | Running. 모든 handoff를 검증하고 publish authority를 유지함 |
 | Leaf 1 | `compose_browser_qa` | Local-only Compose browser runner와 exact active/revoked action-state evidence | 최신 macOS fast 실행이 active/revoked browser QA를 통과했다. Revoked phase는 login 재시도나 limit 변경 없이 고정 61초 pre-hash login-window wait를 사용하며 release-level browser certification/screenshot은 pending임 |
-| Leaf 2 | `clean_checkout_gate` | 외부 temporary-snapshot clean-input preflight, publication authority 없음 | 최신 full run이 candidate source file 905개를 materialize하고 manifest SHA-256 `2c395c3c5e3d28e908513e3304f5896ac7ae1eebe9a88dc80c543fe8baa73150`를 기록한 뒤 `make check`를 통과했다. 이는 source-only pre-commit evidence이며 clean-checkout/CI/Linux/release pass가 아니고 Tasklist 항목을 완료할 수 없음 |
+| Leaf 2 | `clean_checkout_gate` | Clean checkout과 CI reproducibility, publication authority 없음 | Commit `d66c4b8a4842ad4226cb741e35331ba5b9068520`를 clean temporary directory에 외부 clone했고 status는 전후 clean이며 `make check`를 통과했다. Post-repair CI rerun, Linux 및 release gate는 open으로 유지함 |
 | Leaf 3 | `docs_sync_current_evidence` | `README.md`와 PRD/ADR/TDD/Tasklist/WBS/readiness 영문·한글 pair | Running. Browser-QA result, exact executor dependency policy 및 open release gate를 동기화하며 task completion은 변경하지 않음 |
 
 완료된 `docker_none_semantics_review`는 `RUN4`가 사용하는 compatibility rule을 독립적으로 제한했다. Running `network_mode:none` container는 EndpointID가 Docker built-in `none` network membership에 정확히 결속되고 address, MAC, DNS, alias, IPAM state가 모두 inert인 경우에만 허용한다. 이 검토는 repair의 선행조건이지 E2E 성공 evidence가 아니다.
@@ -48,13 +48,13 @@ Snapshot: 2026-07-20 (Asia/Seoul). 90-leaf table은 dependency 및 ownership pla
 
 | Wave | State | Integrated evidence / remaining boundary |
 | --- | --- | --- |
-| Contract and implementation wave | Integrated locally | Gateway-first contract, provider-free stale queued-analysis supersession·staged signed-history activation·repeated-content-digest identity·API-only projection을 포함한 33개 migration, backend/control plane, UI, dispatcher/executor, recovery, export, observability, test harness가 존재함. Untracked tree는 clean-checkout baseline이 아님 |
+| Contract and implementation wave | Published baseline과 local integration | Gateway-first contract, provider-free stale queued-analysis supersession·staged signed-history activation·repeated-content-digest identity·API-only projection을 포함한 33개 migration, backend/control plane, UI, dispatcher/executor, recovery, export, observability, test harness가 존재함. `d66c4b8a4842ad4226cb741e35331ba5b9068520`은 clean-clone `make check` evidence가 있고 post-repair CI rerun은 pending임 |
 | Frontend contract certification | Final root rerun passed | Final root rerun이 Vitest file 39개/test 363개와 deployment-CSP Chromium 1/1을 보고했다. CSP-safe error decoder, exact header parser, all-production-chunk dynamic-code-generation scan이 존재한다. 이후 macOS runner가 active/revoked browser QA를 통과했지만 full frontend state/accessibility/visual/release evidence는 pending임 |
 | Backend and safety certification | Final root rerun passed | Backend 88-package gate와 PostgreSQL 17.10 33-migration/72-table verifier의 final root rerun이 fresh/restart-noop·`33→24→33`·ACL·sqlc·repeated-content identity·API projection·stale-analysis supersession check를 포함해 통과했다. Native Linux와 release-duration condition은 open임 |
 | Compose E2E repair/certification | RUN25 fast와 이후 browser runner 통과, release qualification open | SHA-256 `4702571db361b411449dadc789995348f0254f0a07a1a2aefda36a79b070b877`인 RUN25는 build/start, health/authority/private-origin isolation, exact coverage, 다섯 scenario 전체, stable binding, exact HIL add/inspect/revoke, digest-mismatch rejection, outage forwarding, restart/reconciliation 및 cleanup을 통과했다. 이후 macOS `--run-browser-qa` 실행은 고정 61초 pre-hash login-window wait 뒤 active/revoked browser QA를 통과했다. `--fast`는 native expiry 대신 revoke하고 macOS는 host-ruleset invariance를 인증하지 못함 |
-| Supply chain and final release | 이전 full supply-chain evidence 유지, final release open | 이전 full rerun 3은 reproducible image/SBOM/Trivy/runtime/lifecycle cleanup을 통과했다. 남은 목표는 clean checkout/CI, default native-expiry/native host evidence, live OpenAI opt-in, 4 GB performance, final doc/screenshot 및 release decision임 |
+| Supply chain and final release | 이전 full supply-chain 및 clean-clone evidence 유지, final release open | 이전 full rerun 3은 reproducible image/SBOM/Trivy/runtime/lifecycle cleanup을 통과했고 publish된 baseline clean clone도 `make check`를 통과했다. 남은 목표는 post-repair CI rerun, default native-expiry/native host evidence, live OpenAI opt-in, 4 GB performance, final doc/screenshot 및 release decision임 |
 
-Tasklist checkbox는 이 wave ledger보다 엄격하다. Complete 항목은 `M0-001`, `M0-002`, `M0-009`, `M0-015`, `M0-017`, `M0-019`뿐이다. `M0-005`에는 여전히 live OpenAI result가 없고 clean-checkout/CI, native host-nft, reusable worktree, Compose mutation 및 five-minute 4 GB performance evidence가 미완료다. 따라서 현재 release classification은 **Still implementing**이다.
+Tasklist checkbox는 이 wave ledger보다 엄격하다. Complete 항목은 `M0-001`, `M0-002`, `M0-009`, `M0-015`, `M0-017`, `M0-019`뿐이다. `M0-005`에는 여전히 live OpenAI result가 없고 post-repair CI rerun, native host-nft, reusable worktree, Compose mutation 및 five-minute 4 GB performance evidence가 미완료다. 따라서 현재 release classification은 **Still implementing**이다.
 
 이전 full supply-chain gate는 Docker-mutating E2E work 전에 완료되고 cleanup됐다. 다음 default native-expiry run은 fresh global baseline을 capture하고 다른 Docker-mutating gate와 직렬 실행해야 한다.
 

@@ -14,7 +14,7 @@
 
 현재 5일 납기 구간의 시간 제한 실행 계획은 [WBS.ko.md](./WBS.ko.md)에서 관리한다. 작업 완료의 기준 문서는 계속 Tasklist이며, WBS는 완료 기준을 바꾸지 않고 릴리스를 차단하는 모든 P0 workstream을 일정에 배치한다.
 
-현재 evidence는 의도적으로 보수적으로 처리한다. Complete criteria와 prerequisite를 모두 충족한 항목은 `M0-001`, `M0-002`, `M0-009`, `M0-015`, `M0-017`, `M0-019`뿐이다. Integrated tree에는 backend, PostgreSQL integration, 33-migration/72-table database verifier, backup/restore, export/observability/security/nft/performance smoke, full supply-chain/image gate, focused frontend/CSP evidence 및 RUN25 fast Compose E2E 등 상당한 passing local evidence가 있지만 clean baseline으로 추적되지 않았다. RUN25는 mutation/browser/outage/restart fast path를 통과했다. `M0-005`에는 live OpenAI result가 없고 `M0-006`/`M0-008`에는 clean-checkout CI evidence가 없으며 `M0-013`에는 native Linux host-nft qualification이 없고 `M0-018`에는 reusable isolated worktree pool이 없다. M1 entry가 M0 전체를 요구하므로 partial implementation evidence가 있어도 M1–M10의 downstream checkbox는 모두 open으로 둔다.
+현재 evidence는 의도적으로 보수적으로 처리한다. Complete criteria와 prerequisite를 모두 충족한 항목은 `M0-001`, `M0-002`, `M0-009`, `M0-015`, `M0-017`, `M0-019`뿐이다. Commit `d66c4b8a4842ad4226cb741e35331ba5b9068520`를 clean temporary directory에 외부 clone했고 검증 전후 clean 상태를 유지했으며 backend, frontend, browser, security, supply-chain, threshold gate를 포함한 `make check`를 통과했다. RUN25는 mutation/browser/outage/restart fast path를 통과했다. `M0-005`에는 live OpenAI result가 없고 `M0-006`/`M0-008`의 post-repair CI rerun은 pending이며 `M0-013`에는 native Linux host-nft qualification이 없고 `M0-018`에는 reusable isolated worktree pool이 없다. M1 entry가 M0 전체를 요구하므로 partial implementation evidence가 있어도 M1–M10의 downstream checkbox는 모두 open으로 둔다.
 
 ## 우선순위와 추적 규칙
 

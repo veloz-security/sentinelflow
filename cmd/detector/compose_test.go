@@ -190,7 +190,10 @@ func TestComposeSeparatesManagementFromDatabaseControlNetwork(t *testing.T) {
 		"hba_file=/etc/postgresql/sentinelflow-pg_hba.conf",
 		"listen_addresses=172.32.0.2",
 		"pg_isready -q -h 172.32.0.2",
-		"./postgres/pg_hba.conf:/etc/postgresql/sentinelflow-pg_hba.conf:ro",
+		"source: ./postgres/pg_hba.conf",
+		"target: /etc/postgresql/sentinelflow-pg_hba.conf",
+		"read_only: true",
+		"create_host_path: false",
 	} {
 		if !strings.Contains(postgres, expected) {
 			t.Errorf("PostgreSQL service missing HBA boundary %q", expected)

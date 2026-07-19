@@ -304,7 +304,7 @@ RFC 5737 documentation range는 normal profile에서 보호한다. Isolated demo
 
 ### 상태
 
-**채택됨 — 구현 증거 존재, release 검증 미완료.** v0.1 stack과 top-level process/module boundary를 구현했다. 88-package backend gate와 PostgreSQL 17.10 33-migration/72-table verifier의 final root rerun, API-only validation-attempt projection, production-CSP Chromium gate를 포함한 현재 frontend unit 39-file/363-test suite, 여러 isolated runtime gate 및 이전에 완료한 supply-chain/image gate의 local evidence가 있다. RUN25 fast는 mutation/outage/restart path를 다뤘고 이후 macOS `--run-browser-qa` 실행은 revoked phase의 고정 61초 pre-hash login-window 대기와 함께 active/revoked browser QA를 통과했지만 default native expiry, clean-checkout/CI, native host-ruleset, live OpenAI 및 4-GB performance gate는 open이다.
+**채택됨 — 구현 증거 존재, release 검증 미완료.** v0.1 stack과 top-level process/module boundary를 구현했다. 88-package backend gate와 PostgreSQL 17.10 33-migration/72-table verifier의 final root rerun, API-only validation-attempt projection, production-CSP Chromium gate를 포함한 현재 frontend unit 39-file/363-test suite, 여러 isolated runtime gate 및 이전에 완료한 supply-chain/image gate의 local evidence가 있다. RUN25 fast는 mutation/outage/restart path를 다뤘고 이후 macOS `--run-browser-qa` 실행은 revoked phase의 고정 61초 pre-hash login-window 대기와 함께 active/revoked browser QA를 통과했다. Commit `d66c4b8a4842ad4226cb741e35331ba5b9068520`의 외부 clean clone도 `make check`를 통과했다. Default native expiry, post-repair CI rerun, native host-ruleset, live OpenAI 및 4-GB performance gate는 open이다.
 
 ### 맥락
 
@@ -519,7 +519,7 @@ Log-first prototype은 request를 관찰하기 전에 external formatting, trans
 
 ### 상태
 
-**채택됨 — 구현 증거 존재, integrated release 검증 미완료.** 최종 권장 architecture와 구현 준비 요청의 일부로 project owner가 2026-07-18 승인했다. 88-package backend gate, PostgreSQL 17.10 33-migration/72-table verifier, repeated-content-digest identity test, API-only terminal validation-attempt projection, focused frontend/harness suite 및 RUN25 fast mutation/browser/outage/restart evidence가 local implementation evidence를 제공한다. Default native-expiry, native host-ruleset, clean-checkout/CI, live OpenAI 및 release-duration gate는 open이다. 이 ADR은 ADR-006, ADR-010, ADR-011에서 명시한 executor-authority 및 recovery-reapplication mechanics만 대체한다. Edge, origin, minimization, delivery 및 auth-binding clause는 compatible earlier contract를 축소하거나 완성한다. 해당 ADR의 product goal, trust boundary, validation order, HIL requirement, Gateway-first 선택 또는 optional-adapter position은 대체하지 않는다.
+**채택됨 — 구현 증거 존재, integrated release 검증 미완료.** 최종 권장 architecture와 구현 준비 요청의 일부로 project owner가 2026-07-18 승인했다. 88-package backend gate, PostgreSQL 17.10 33-migration/72-table verifier, repeated-content-digest identity test, API-only terminal validation-attempt projection, focused frontend/harness suite 및 RUN25 fast mutation/browser/outage/restart evidence가 local implementation evidence를 제공한다. Commit `d66c4b8a4842ad4226cb741e35331ba5b9068520`의 외부 clean clone도 `make check`를 통과했다. Default native-expiry, native host-ruleset, post-repair CI rerun, live OpenAI 및 release-duration gate는 open이다. 이 ADR은 ADR-006, ADR-010, ADR-011에서 명시한 executor-authority 및 recovery-reapplication mechanics만 대체한다. Edge, origin, minimization, delivery 및 auth-binding clause는 compatible earlier contract를 축소하거나 완성한다. 해당 ADR의 product goal, trust boundary, validation order, HIL requirement, Gateway-first 선택 또는 optional-adapter position은 대체하지 않는다.
 
 ### 맥락
 
@@ -569,7 +569,7 @@ ADR-006, ADR-010, ADR-011은 temporary isolated nftables enforcement, HIL 아래
 
 ### 상태
 
-**채택됨 — integrated database evidence 존재, release 검증 미완료.** Asserted v0.1 demo profile의 architecture로 확정한다. PostgreSQL 17.10 verifier는 fresh/restart-noop과 `33→24→33`을 포함한 33 migration/72 table을 통과했고 staged activation 및 recovery evidence는 유지된다. RUN25 fast는 signed-history activation, exact HIL mutation/inspect/revoke, browser, outage, restart 및 cleanup path를 통과했다. Default native-expiry, native host-ruleset, clean-checkout/CI, live OpenAI 및 4-GB performance gate는 pending이다. 이 ADR은 ADR-012의 demo-history clause를 구체화하며 production에서 signed fixture를 허용하지 않는다.
+**채택됨 — integrated database evidence 존재, release 검증 미완료.** Asserted v0.1 demo profile의 architecture로 확정한다. PostgreSQL 17.10 verifier는 fresh/restart-noop과 `33→24→33`을 포함한 33 migration/72 table을 통과했고 staged activation 및 recovery evidence는 유지된다. RUN25 fast는 signed-history activation, exact HIL mutation/inspect/revoke, browser, outage, restart 및 cleanup path를 통과했다. Commit `d66c4b8a4842ad4226cb741e35331ba5b9068520`의 외부 clean clone도 `make check`를 통과했다. Default native-expiry, native host-ruleset, post-repair CI rerun, live OpenAI 및 4-GB performance gate는 pending이다. 이 ADR은 ADR-012의 demo-history clause를 구체화하며 production에서 signed fixture를 허용하지 않는다.
 
 ### 맥락
 
@@ -588,7 +588,7 @@ Demo에는 freshly sealed public proof 하나에서 least-privilege consumer 둘
 7. **Create/refresh가 아닌 attach/use:** Long-running analysis와 validation process는 자기 capability만 mount한다. Byte-exact existing unexpired activation에만 attach하고 job/aggregate version 하나에 대한 append-only use를 기록할 수 있다. 어떤 worker도 history import, pair creation, expiry renewal, consumer identity exchange, silent order/digest repair 또는 missing/expired activation 계속 사용을 할 수 없다.
 8. **Fail-closed recovery:** Exact completed import recovery와 exact pair reattachment는 idempotent다. Failed, importing, drifted, partially activated, stale 또는 expired state는 in-place repair하지 않는다. One-hour expiry 뒤 operator는 profile을 중지하고 전체 disposable demo state와 volume을 제거하며 새 run/capability를 생성하고 fresh cluster에서 migrate/import/activate해야 한다. Partial reseal, database reuse 또는 activation-only restart는 지원하지 않는다.
 9. **Cluster-wide migration guard:** Migration startup, downgrade 및 production transition은 PostgreSQL cluster 전체에서 두 role을 normalize하고 retained session을 terminate하며 membership/elevated attribute를 거부하고 zero peer session을 검증한다. Migration owner는 fixed-name fencing function의 session superuser이고 `PUBLIC`과 unrelated role에는 execute grant가 없다. Evidence-bearing activation 또는 use가 있으면 downgrade를 차단한다.
-10. **Independent evidence requirement:** Targeted unit/PostgreSQL integration test가 wrong capability, expired lease/activation, role-attribute drift, retained session, 한 cluster를 공유하는 database 둘, handoff 전후 failure, exact ACL, empty down/up, downgrade guard 및 no secret leakage를 다룬다. Static Compose policy는 exact command, dependency object, environment owner, complete mount inventory, authority-volume alias/write leak 부재를 증명해야 한다. RUN25는 fast mutation/outage/restart evidence를 제공하지만 default native-expiry, native host-ruleset, clean-checkout, performance 및 final release gate를 대체하지 않는다.
+10. **Independent evidence requirement:** Targeted unit/PostgreSQL integration test가 wrong capability, expired lease/activation, role-attribute drift, retained session, 한 cluster를 공유하는 database 둘, handoff 전후 failure, exact ACL, empty down/up, downgrade guard 및 no secret leakage를 다룬다. Static Compose policy는 exact command, dependency object, environment owner, complete mount inventory, authority-volume alias/write leak 부재를 증명해야 한다. RUN25는 fast mutation/outage/restart evidence를 제공하지만 default native-expiry, native host-ruleset, post-repair CI rerun, performance 및 final release gate를 대체하지 않는다.
 
 ### 대안
 

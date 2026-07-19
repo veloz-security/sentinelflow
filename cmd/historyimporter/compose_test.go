@@ -135,7 +135,10 @@ func TestComposeStagesDemoHistoryCapabilityAndDatabaseAuthority(t *testing.T) {
 		`condition: service_completed_successfully`,
 		`DATABASE_DEMO_ACTIVATOR_PASSWORD: ${DATABASE_DEMO_ACTIVATOR_PASSWORD}`,
 		`command: ["/opt/sentinelflow/demo-activation-handoff.sh"]`,
-		`./postgres/demo-activation-handoff.sh:/opt/sentinelflow/demo-activation-handoff.sh:ro`,
+		`source: ./postgres/demo-activation-handoff.sh`,
+		`target: /opt/sentinelflow/demo-activation-handoff.sh`,
+		`read_only: true`,
+		`create_host_path: false`,
 		`demo-history-capability-receipts:/run/sentinelflow-demo-history-capability-receipts:ro`,
 	} {
 		if !strings.Contains(handoff, expected) {

@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -194,9 +195,11 @@ func TestClientRejectsSocketReplacementBetweenInspectionAndDial(t *testing.T) {
 	})
 	client, _ := NewClient(path, ExchangeTimeout, testBinaryDigest, testNFTVersion)
 	var stopSecond func()
+	var replacementCalls uint64
 	client.afterBoundaryInspect = func() {
 		stopFirst()
 		_, stopSecond = startRawServerAt(t, path, func(context.Context, []byte) ([]byte, error) {
+			atomic.AddUint64(&replacementCalls, 1)
 			return nil, errors.New("replacement must not be trusted")
 		})
 	}
@@ -205,8 +208,25 @@ func TestClientRejectsSocketReplacementBetweenInspectionAndDial(t *testing.T) {
 	if !errors.As(err, &typed) || typed.Code != ErrorSocketBoundary {
 		t.Fatalf("replacement error=%v", err)
 	}
+	if calls := atomic.LoadUint64(&replacementCalls); calls != 0 {
+		t.Fatalf("replacement received %d request(s)", calls)
+	}
 	if stopSecond != nil {
 		stopSecond()
+	}
+}
+
+func TestClientClassifiesMissingSocketAfterInspectionAsBoundary(t *testing.T) {
+	path, stop := startRawServer(t, func(context.Context, []byte) ([]byte, error) {
+		return nil, errors.New("must not be reached")
+	})
+	client, _ := NewClient(path, ExchangeTimeout, testBinaryDigest, testNFTVersion)
+	client.afterBoundaryInspect = stop
+
+	_, err := client.Check(t.Context(), validInput(t))
+	var typed *Error
+	if !errors.As(err, &typed) || typed.Code != ErrorSocketBoundary {
+		t.Fatalf("missing socket error=%v", err)
 	}
 }
 

@@ -723,7 +723,13 @@ function namedVolumeMount(source, target, readOnly = false) {
 }
 
 function fixedBindMount(source, target, readOnly = true) {
-  return { type: "bind", source, target, readOnly };
+  return {
+    type: "bind",
+    source,
+    target,
+    readOnly,
+    bind: { create_host_path: false },
+  };
 }
 
 function dynamicBindMount(sourceGroup, target, readOnly = true) {
@@ -1345,7 +1351,8 @@ function validateComposeMounts(services) {
         mount[expected.type] &&
           typeof mount[expected.type] === "object" &&
           !Array.isArray(mount[expected.type]) &&
-          Object.keys(mount[expected.type]).length === 0,
+          JSON.stringify(mount[expected.type]) ===
+            JSON.stringify(expected[expected.type] || {}),
         `${serviceName} mount options differ for ${expected.target}`,
       );
       if (expected.type === "volume") {

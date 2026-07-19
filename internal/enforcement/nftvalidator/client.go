@@ -73,6 +73,15 @@ func (c *Client) Check(ctx context.Context, input nftcheck.Input) (nftcheck.Evid
 	dialer := net.Dialer{Timeout: c.timeout}
 	raw, err := dialer.DialContext(ctx, "unix", c.socketPath)
 	if err != nil {
+		// A path-bound UNIX dial can race with a socket unlink/replacement.  When
+		// the boundary no longer has the exact identity inspected above, classify
+		// that observable change as a boundary violation rather than a transient
+		// transport failure.  This keeps a caller from retrying a replacement
+		// validator as though it were the original trusted endpoint.
+		after, inspectErr := inspectSocketBoundary(c.socketPath)
+		if inspectErr != nil || before != after {
+			return evidence, reject(ErrorSocketBoundary)
+		}
 		return evidence, transportError(ctx, err)
 	}
 	connection, ok := raw.(*net.UnixConn)
@@ -153,10 +162,13 @@ func transportError(ctx context.Context, err error) error {
 }
 
 type socketIdentity struct {
-	device uint64
-	inode  uint64
-	uid    uint32
-	gid    uint32
+	parentDevice uint64
+	parentInode  uint64
+	device       uint64
+	inode        uint64
+	uid          uint32
+	gid          uint32
+	modifiedAt   int64
 }
 
 func inspectSocketBoundary(path string) (socketIdentity, error) {
@@ -181,8 +193,9 @@ func inspectSocketBoundary(path string) (socketIdentity, error) {
 		return socketIdentity{}, reject(ErrorSocketBoundary)
 	}
 	return socketIdentity{
+		parentDevice: uint64(parentStat.Dev), parentInode: uint64(parentStat.Ino),
 		device: uint64(socketStat.Dev), inode: uint64(socketStat.Ino),
-		uid: socketStat.Uid, gid: socketStat.Gid,
+		uid: socketStat.Uid, gid: socketStat.Gid, modifiedAt: socketInfo.ModTime().UnixNano(),
 	}, nil
 }
 

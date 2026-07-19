@@ -10,6 +10,12 @@ chmod 0700 "$temporary"
 cleanup() {
   docker rm -f "$container" >/dev/null 2>&1 || true
   if [[ -d "$temporary" && ! -L "$temporary" ]]; then
+    # Recovery fixtures deliberately create root-owned 0700 directories through
+    # the PostgreSQL container. A Linux host runner cannot remove those after
+    # the test, so use the same pinned disposable image to clear only this
+    # controlled bind mount before the host-side no-follow cleanup.
+    docker run --rm --volume "$temporary:/recovery" --entrypoint /bin/sh "$image" \
+      -c 'find /recovery -mindepth 1 -depth -delete' >/dev/null 2>&1 || true
     find "$temporary" -depth -delete
   fi
 }

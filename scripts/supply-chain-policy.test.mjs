@@ -117,7 +117,7 @@ function materializeReviewedMounts(services) {
         type: expected.type,
         source: expected.source ?? sourceGroups[expected.sourceGroup],
         target: expected.target,
-        [expected.type]: {},
+        [expected.type]: structuredClone(expected[expected.type] || {}),
       };
       if (expected.readOnly) {
         mount.read_only = true;
@@ -1203,6 +1203,17 @@ test("Compose runtime policy freezes complete mount and top-level volume invento
   assert.throws(
     () => validateComposeRuntimePolicy(writableHandoffReceipt),
     /demo-activation-handoff mount contract differs/u,
+  );
+
+  const hostCreatingHandoffBind = validComposeRuntime();
+  serviceMount(
+    hostCreatingHandoffBind,
+    "demo-activation-handoff",
+    "/opt/sentinelflow/demo-activation-handoff.sh",
+  ).bind.create_host_path = true;
+  assert.throws(
+    () => validateComposeRuntimePolicy(hostCreatingHandoffBind),
+    /demo-activation-handoff mount options differ/u,
   );
 
   const crossedHandoffReceipt = validComposeRuntime();
