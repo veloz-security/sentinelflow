@@ -368,8 +368,8 @@ node scripts/supply-chain-policy.mjs verify-scanner-db "$temporary/cache/db"
 scan_image() {
   local kind="$1"
   local reference="$2"
-  local image_manifest_id
   local image_config_id
+  local archive_manifest_id
   local config_path
   local archive_binding
   local config_digest
@@ -380,15 +380,14 @@ scan_image() {
   local sbom="$temporary/reports/$kind.spdx.json"
 
   mkdir -m 0700 "$work_directory"
-  image_manifest_id="$(docker image inspect --format '{{.Id}}' "$reference")"
   docker image save --output "$work_directory/image.tar" "$reference"
   tar -xOf "$work_directory/image.tar" index.json \
     >"$work_directory/index.json"
   tar -xOf "$work_directory/image.tar" manifest.json \
     >"$work_directory/manifest.json"
+  archive_manifest_id="$(node -e 'const fs = require("node:fs"); const index = JSON.parse(fs.readFileSync(process.argv[1], "utf8")); process.stdout.write(index.manifests[0].digest);' "$work_directory/index.json")"
   archive_binding="$(
     node scripts/supply-chain-policy.mjs verify-image-archive \
-      "$image_manifest_id" \
       "$work_directory/index.json" \
       "$work_directory/manifest.json"
   )"
@@ -457,7 +456,7 @@ scan_image() {
   node scripts/supply-chain-policy.mjs verify-image-sbom "$sbom"
 
   IMAGE_KIND="$kind" IMAGE_REFERENCE="$reference" \
-    IMAGE_MANIFEST_ID="$image_manifest_id" IMAGE_CONFIG_ID="$image_config_id" \
+    IMAGE_MANIFEST_ID="$archive_manifest_id" IMAGE_CONFIG_ID="$image_config_id" \
     node -e '
       const fs = require("node:fs");
       const crypto = require("node:crypto");

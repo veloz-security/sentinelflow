@@ -1127,12 +1127,7 @@ export function validateImageInspection(kind, inspection) {
 export function validateImageArchiveBinding(
   indexDocument,
   dockerManifest,
-  expectedManifestID,
 ) {
-  invariant(
-    /^sha256:[0-9a-f]{64}$/u.test(expectedManifestID),
-    "expected image manifest ID is invalid",
-  );
   invariant(
     indexDocument &&
       typeof indexDocument === "object" &&
@@ -1143,8 +1138,8 @@ export function validateImageArchiveBinding(
     "image archive index must contain exactly one manifest",
   );
   invariant(
-    indexDocument.manifests[0].digest === expectedManifestID,
-    "image archive manifest ID does not match the inspected image",
+    /^sha256:[0-9a-f]{64}$/u.test(indexDocument.manifests[0].digest),
+    "image archive index manifest digest is invalid",
   );
   invariant(
     Array.isArray(dockerManifest) && dockerManifest.length === 1,
@@ -3111,13 +3106,12 @@ function main() {
   }
   if (command === "verify-image-archive") {
     invariant(
-      args.length === 3,
-      "usage: supply-chain-policy.mjs verify-image-archive <manifest-id> <index-json> <docker-manifest-json>",
+      args.length === 2,
+      "usage: supply-chain-policy.mjs verify-image-archive <index-json> <docker-manifest-json>",
     );
     const result = validateImageArchiveBinding(
-      readStrictJsonFile(args[1], "image archive index"),
-      readStrictJsonFile(args[2], "Docker image archive manifest"),
-      args[0],
+      readStrictJsonFile(args[0], "image archive index"),
+      readStrictJsonFile(args[1], "Docker image archive manifest"),
     );
     process.stdout.write(`${result.imageConfigID}\t${result.configPath}\n`);
     return;

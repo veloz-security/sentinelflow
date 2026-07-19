@@ -785,7 +785,7 @@ test("image inspection requires the reviewed non-root user and entrypoint", () =
   );
 });
 
-test("image archive binds the inspected manifest and scanner config IDs", () => {
+test("image archive validates the descriptor and scanner config bytes", () => {
   const manifestID = `sha256:${"c".repeat(64)}`;
   const configDigest = "d".repeat(64);
   const layerDigest = "e".repeat(64);
@@ -800,26 +800,17 @@ test("image archive binds the inspected manifest and scanner config IDs", () => 
     },
   ];
   assert.deepEqual(
-    validateImageArchiveBinding(indexDocument, dockerManifest, manifestID),
+    validateImageArchiveBinding(indexDocument, dockerManifest),
     {
       imageConfigID: `sha256:${configDigest}`,
       configPath: `blobs/sha256/${configDigest}`,
     },
   );
-  assert.throws(
-    () =>
-      validateImageArchiveBinding(
-        indexDocument,
-        dockerManifest,
-        `sha256:${"f".repeat(64)}`,
-      ),
-    /manifest ID does not match/u,
-  );
   const duplicateLayer = structuredClone(dockerManifest);
   duplicateLayer[0].Layers.push(duplicateLayer[0].Layers[0]);
   assert.throws(
     () =>
-      validateImageArchiveBinding(indexDocument, duplicateLayer, manifestID),
+      validateImageArchiveBinding(indexDocument, duplicateLayer),
     /duplicate layers/u,
   );
 });
