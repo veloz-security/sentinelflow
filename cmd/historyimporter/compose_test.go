@@ -29,7 +29,10 @@ func TestComposeHistoryImporterHasOnlyPublicImportAuthority(t *testing.T) {
 		`DEMO_HISTORY_IMPORT_ID: ${DEMO_HISTORY_IMPORT_ID}`,
 		`DEMO_HISTORY_CLOCK_AT: ${DEMO_HISTORY_CLOCK_AT}`,
 		`DEMO_HISTORY_IMPACT_SOURCE_HEALTH_DIGEST: ${DEMO_HISTORY_IMPACT_SOURCE_HEALTH_DIGEST}`,
-		`${DEMO_HISTORY_SOURCE:-../data/demo-history}:/run/sentinelflow-demo-history:ro`,
+		`source: ${DEMO_HISTORY_SOURCE:-../data/demo-history}`,
+		`target: /run/sentinelflow-demo-history`,
+		`read_only: true`,
+		`create_host_path: false`,
 		`ipv4_address: 172.32.0.8`,
 	} {
 		if !strings.Contains(service, expected) {
@@ -95,7 +98,9 @@ func TestComposeStagesDemoHistoryCapabilityAndDatabaseAuthority(t *testing.T) {
 
 	secretInit := serviceBlock(t, compose, "secret-init")
 	for _, expected := range []string{
-		`${DEMO_SECRETS_SOURCE:-../secrets/demo}:/source:ro`,
+		`source: ${DEMO_SECRETS_SOURCE:-../secrets/demo}`,
+		`target: /source`,
+		`create_host_path: false`,
 		`demo-history-capability-receipts:/volumes/demo-history-capability-receipts`,
 		`demo-history-analysis-activation:/volumes/demo-history-analysis-activation`,
 		`demo-history-validation-activation:/volumes/demo-history-validation-activation`,
@@ -248,7 +253,9 @@ func TestComposeRunsExactlyOneProviderIndependentValidationConsumer(t *testing.T
 		`DEMO_HISTORY_IMPACT_SOURCE_HEALTH_DIGEST: ${DEMO_HISTORY_IMPACT_SOURCE_HEALTH_DIGEST}`,
 		`DEMO_HISTORY_VALIDATION_ACTIVATION_SECRET_FILE: ${DEMO_HISTORY_VALIDATION_ACTIVATION_SECRET_FILE}`,
 		`validator-socket:/run/sentinelflow-validator:ro`,
-		`${DEMO_HISTORY_SOURCE:-../data/demo-history}:/run/sentinelflow-demo-history:ro`,
+		`source: ${DEMO_HISTORY_SOURCE:-../data/demo-history}`,
+		`target: /run/sentinelflow-demo-history`,
+		`create_host_path: false`,
 		`demo-history-validation-activation:/run/secrets/sentinelflow-demo-history-validation:ro`,
 		`control:`, `ipv4_address: 172.32.0.6`,
 	} {

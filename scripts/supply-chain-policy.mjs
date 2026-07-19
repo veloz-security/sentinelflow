@@ -21,6 +21,8 @@ export const approvedPrometheusImage =
   "prom/prometheus:v3.13.1-distroless@sha256:214f8427c8fba80c327bb94a75feb802ae12f2d6ca30812aa6e7d22f09bbea80";
 export const approvedTrivyImage =
   "aquasec/trivy:0.70.0@sha256:be1190afcb28352bfddc4ddeb71470835d16462af68d310f9f4bca710961a41e";
+export const approvedBuildkitImage =
+  "moby/buildkit:v0.23.2@sha256:ddd1ca44b21eda906e81ab14a3d467fa6c39cd73b9a39df1196210edcb8db59e";
 export const approvedTrivyDatabase =
   "ghcr.io/aquasecurity/trivy-db:2@sha256:dfb24f192c02d06a1c467c87177b61e67bfb816d86b6d8d55d52e29329f83035";
 export const approvedTrivyDatabaseChecksums = Object.freeze({
@@ -2126,6 +2128,7 @@ export function validateObservabilityVerificationText(text, filename) {
 
 export function validateImageGateText(text, filename = "<image-gate>") {
   for (const [name, reference] of [
+    ["buildkit_builder_image", approvedBuildkitImage],
     ["scanner_image", approvedTrivyImage],
     ["scanner_database", approvedTrivyDatabase],
     ["prometheus_image", approvedPrometheusImage],
@@ -2136,7 +2139,9 @@ export function validateImageGateText(text, filename = "<image-gate>") {
     );
   }
   invariant(
-    text.includes('docker pull "$scanner_image"') &&
+      text.includes('docker buildx create') &&
+      text.includes('image=$buildkit_builder_image') &&
+      text.includes('docker pull "$scanner_image"') &&
       text.includes("verify-scanner-version") &&
       text.includes("verify-scanner-db"),
     `${filename} does not verify immutable scanner acquisition`,

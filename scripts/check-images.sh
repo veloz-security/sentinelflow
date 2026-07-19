@@ -22,6 +22,7 @@ docker buildx version >/dev/null 2>&1 || fail "Docker Buildx is unavailable"
 docker compose version >/dev/null 2>&1 || fail "Docker Compose is unavailable"
 
 scanner_image="aquasec/trivy:0.70.0@sha256:be1190afcb28352bfddc4ddeb71470835d16462af68d310f9f4bca710961a41e"
+buildkit_builder_image="moby/buildkit:v0.23.2@sha256:ddd1ca44b21eda906e81ab14a3d467fa6c39cd73b9a39df1196210edcb8db59e"
 scanner_database="ghcr.io/aquasecurity/trivy-db:2@sha256:dfb24f192c02d06a1c467c87177b61e67bfb816d86b6d8d55d52e29329f83035"
 prometheus_image="prom/prometheus:v3.13.1-distroless@sha256:214f8427c8fba80c327bb94a75feb802ae12f2d6ca30812aa6e7d22f09bbea80"
 # These are verification-only receipt digests, not activation capabilities or
@@ -36,6 +37,7 @@ containers=()
 images=()
 networks=()
 volumes=()
+buildx_builder=""
 scanner_preexisting=false
 prometheus_preexisting=false
 exported_report_directory=""
@@ -79,6 +81,9 @@ cleanup() {
   if [[ -n "$exported_report_directory" && "$exported_reports_complete" == false ]]; then
     find "$exported_report_directory" -depth -delete 2>/dev/null || true
   fi
+  if [[ -n "$buildx_builder" ]]; then
+    docker buildx rm --force "$buildx_builder" >/dev/null 2>&1 || true
+  fi
   find "$temporary" -depth -delete 2>/dev/null || true
 }
 trap cleanup EXIT
@@ -86,6 +91,13 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 
 mkdir -m 0700 "$temporary/cache" "$temporary/reports" "$temporary/work"
+
+buildx_builder="sentinelflow-supply-chain-$run_id"
+docker buildx create \
+  --name "$buildx_builder" \
+  --driver docker-container \
+  --driver-opt "image=$buildkit_builder_image" \
+  --use >/dev/null || fail "unable to create the pinned OCI-capable BuildKit builder"
 
 context_snapshot="$temporary/context"
 context_archive="$temporary/context.tar"
