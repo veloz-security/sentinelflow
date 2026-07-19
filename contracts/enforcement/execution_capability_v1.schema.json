@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinelflow.example/contracts/enforcement/execution_capability_v1.schema.json",
+  "title": "SentinelFlow dispatcher execution capability v1",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "execution-capability-v1"
+    },
+    "capability_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "operation": {
+      "enum": [
+        "add",
+        "revoke",
+        "inspect"
+      ]
+    },
+    "job_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "action_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "policy_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "policy_version": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 2147483647
+    },
+    "target_ipv4": {
+      "type": "string",
+      "format": "ipv4",
+      "minLength": 7,
+      "maxLength": 15
+    },
+    "artifact_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "original_add_digest": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/digest"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "evidence_snapshot_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "validation_snapshot_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "authorization_digest": {
+      "$ref": "#/$defs/digest",
+      "description": "Digest of enforcement-authorization-v1 for add/revoke, or the separate non-HIL inspection-authorization-v1 for inspect."
+    },
+    "actor_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "description": "Administrator actor for mutation capabilities; system scheduler identity for read-only inspect."
+    },
+    "reason_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "owned_schema_digest": {
+      "$ref": "#/$defs/digest",
+      "description": "SHA-256 of RFC 8785/JCS bytes of nft_base_chain_v1.live.json; this is distinct from the raw nft_base_chain_v1.nft file digest."
+    },
+    "issued_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "not_before": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "nonce": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{22}$"
+    }
+  },
+  "required": [
+    "schema_version",
+    "capability_id",
+    "operation",
+    "job_id",
+    "action_id",
+    "policy_id",
+    "policy_version",
+    "target_ipv4",
+    "artifact_digest",
+    "original_add_digest",
+    "evidence_snapshot_digest",
+    "validation_snapshot_digest",
+    "authorization_digest",
+    "actor_id",
+    "reason_digest",
+    "owned_schema_digest",
+    "issued_at",
+    "not_before",
+    "expires_at",
+    "nonce"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "add"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "original_add_digest": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "revoke",
+              "inspect"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "original_add_digest": {
+            "$ref": "#/$defs/digest"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    }
+  }
+}

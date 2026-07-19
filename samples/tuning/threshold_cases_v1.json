@@ -1,0 +1,166 @@
+{
+  "schema_version": "threshold-comparison-corpus-v1",
+  "dataset_id": "synthetic-normal-attack-v1",
+  "cases": [
+    {
+      "case_id": "c001-path-attack-exact",
+      "rule_id": "path_scan.v1",
+      "expected_attack": true,
+      "evidence_state": "complete",
+      "observed": { "raw_event_count": 8, "unique_event_count": 8, "distinct_count": 8 },
+      "false_positive_factors": ["none"]
+    },
+    {
+      "case_id": "c002-path-benign-near",
+      "rule_id": "path_scan.v1",
+      "expected_attack": false,
+      "evidence_state": "complete",
+      "observed": { "raw_event_count": 7, "unique_event_count": 7, "distinct_count": 7 },
+      "false_positive_factors": ["authorized_scanner"]
+    },
+    {
+      "case_id": "c003-path-attack-duplicates",
+      "rule_id": "path_scan.v1",
+      "expected_attack": true,
+      "evidence_state": "complete",
+      "observed": { "raw_event_count": 16, "unique_event_count": 8, "distinct_count": 8 },
+      "false_positive_factors": ["none"]
+    },
+    {
+      "case_id": "c004-path-attack-incomplete",
+      "rule_id": "path_scan.v1",
+      "expected_attack": true,
+      "evidence_state": "incomplete",
+      "observed": { "raw_event_count": 8, "unique_event_count": 8, "distinct_count": 8 },
+      "false_positive_factors": ["none"]
+    },
+    {
+      "case_id": "c005-burst-attack-exact",
+      "rule_id": "request_burst.v1",
+      "expected_attack": true,
+      "evidence_state": "complete",
+      "observed": { "raw_event_count": 120, "unique_event_count": 120, "distinct_count": 0 },
+      "false_positive_factors": ["none"]
+    },
+    {
+      "case_id": "c006-burst-benign-near",
+      "rule_id": "request_burst.v1",
+      "expected_attack": false,
+      "evidence_state": "complete",
+      "observed": { "raw_event_count": 119, "unique_event_count": 119, "distinct_count": 0 },
+      "false_positive_factors": ["load_test"]
+    },
+    {
+      "case_id": "c007-burst-attack-duplicates",
+      "rule_id": "request_burst.v1",
+      "expected_attack": true,
+      "evidence_state": "complete",
+      "observed": { "raw_event_count": 240, "unique_event_count": 120, "distinct_count": 0 },
+      "false_positive_factors": ["none"]
+    },
+    {
+      "case_id": "c008-burst-attack-untrusted",
+      "rule_id": "request_burst.v1",
+      "expected_attack": true,
+      "evidence_state": "untrusted",
+      "observed": { "raw_event_count": 120, "unique_event_count": 120, "distinct_count": 0 },
+      "false_positive_factors": ["none"]
+    },
+    {
+      "case_id": "c009-brute-attack-exact",
+      "rule_id": "login_bruteforce.v1",
+      "expected_attack": true,
+      "evidence_state": "complete",
+      "observed": { "raw_event_count": 10, "unique_event_count": 10, "distinct_count": 0 },
+      "false_positive_factors": ["none"]
+    },
+    {
+      "case_id": "c010-brute-benign-near",
+      "rule_id": "login_bruteforce.v1",
+      "expected_attack": false,
+      "evidence_state": "complete",
+      "observed": { "raw_event_count": 9, "unique_event_count": 9, "distinct_count": 0 },
+      "false_positive_factors": ["shared_nat"]
+    },
+    {
+      "case_id": "c011-brute-attack-duplicates",
+      "rule_id": "login_bruteforce.v1",
+      "expected_attack": true,
+      "evidence_state": "complete",
+      "observed": { "raw_event_count": 20, "unique_event_count": 10, "distinct_count": 0 },
+      "false_positive_factors": ["none"]
+    },
+    {
+      "case_id": "c012-brute-attack-unverified",
+      "rule_id": "login_bruteforce.v1",
+      "expected_attack": true,
+      "evidence_state": "unverified",
+      "observed": { "raw_event_count": 10, "unique_event_count": 10, "distinct_count": 0 },
+      "false_positive_factors": ["none"]
+    },
+    {
+      "case_id": "c013-credential-attack-exact",
+      "rule_id": "credential_stuffing.v1",
+      "expected_attack": true,
+      "evidence_state": "complete",
+      "observed": { "raw_event_count": 20, "unique_event_count": 20, "distinct_count": 8 },
+      "false_positive_factors": ["none"]
+    },
+    {
+      "case_id": "c014-credential-benign-events",
+      "rule_id": "credential_stuffing.v1",
+      "expected_attack": false,
+      "evidence_state": "complete",
+      "observed": { "raw_event_count": 19, "unique_event_count": 19, "distinct_count": 8 },
+      "false_positive_factors": ["credential_rotation"]
+    },
+    {
+      "case_id": "c015-credential-benign-accounts",
+      "rule_id": "credential_stuffing.v1",
+      "expected_attack": false,
+      "evidence_state": "complete",
+      "observed": { "raw_event_count": 20, "unique_event_count": 20, "distinct_count": 7 },
+      "false_positive_factors": ["shared_nat"]
+    },
+    {
+      "case_id": "c016-credential-attack-duplicates",
+      "rule_id": "credential_stuffing.v1",
+      "expected_attack": true,
+      "evidence_state": "complete",
+      "observed": { "raw_event_count": 40, "unique_event_count": 20, "distinct_count": 8 },
+      "false_positive_factors": ["none"]
+    },
+    {
+      "case_id": "c017-credential-attack-incomplete",
+      "rule_id": "credential_stuffing.v1",
+      "expected_attack": true,
+      "evidence_state": "incomplete",
+      "observed": { "raw_event_count": 20, "unique_event_count": 20, "distinct_count": 8 },
+      "false_positive_factors": ["none"]
+    },
+    {
+      "case_id": "c018-path-benign-normal",
+      "rule_id": "path_scan.v1",
+      "expected_attack": false,
+      "evidence_state": "complete",
+      "observed": { "raw_event_count": 3, "unique_event_count": 3, "distinct_count": 3 },
+      "false_positive_factors": ["authorized_scanner"]
+    },
+    {
+      "case_id": "c019-burst-benign-normal",
+      "rule_id": "request_burst.v1",
+      "expected_attack": false,
+      "evidence_state": "complete",
+      "observed": { "raw_event_count": 30, "unique_event_count": 30, "distinct_count": 0 },
+      "false_positive_factors": ["load_test"]
+    },
+    {
+      "case_id": "c020-credential-benign-normal",
+      "rule_id": "credential_stuffing.v1",
+      "expected_attack": false,
+      "evidence_state": "complete",
+      "observed": { "raw_event_count": 10, "unique_event_count": 10, "distinct_count": 5 },
+      "false_positive_factors": ["credential_rotation"]
+    }
+  ]
+}

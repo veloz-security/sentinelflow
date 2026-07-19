@@ -1,0 +1,167 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinelflow.example/contracts/enforcement/hil_challenge_v1.schema.json",
+  "title": "SentinelFlow single-use HIL challenge v1",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "hil-challenge-v1"
+    },
+    "challenge_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "session_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "operation": {
+      "enum": [
+        "approve",
+        "reject",
+        "revoke"
+      ]
+    },
+    "resource_type": {
+      "enum": [
+        "policy",
+        "enforcement_action"
+      ]
+    },
+    "resource_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "resource_version": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 2147483647
+    },
+    "target_ipv4": {
+      "type": "string",
+      "format": "ipv4",
+      "minLength": 7,
+      "maxLength": 15
+    },
+    "policy_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "generated_artifact_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "canonical_artifact_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "original_add_digest": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/digest"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "evidence_snapshot_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "validation_snapshot_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "validation_valid_until": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "nonce_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "authenticated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "reauth_required_after_seconds": {
+      "const": 900
+    },
+    "issued_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "schema_version",
+    "challenge_id",
+    "session_digest",
+    "operation",
+    "resource_type",
+    "resource_id",
+    "resource_version",
+    "target_ipv4",
+    "policy_digest",
+    "generated_artifact_digest",
+    "canonical_artifact_digest",
+    "original_add_digest",
+    "evidence_snapshot_digest",
+    "validation_snapshot_digest",
+    "validation_valid_until",
+    "nonce_digest",
+    "authenticated_at",
+    "reauth_required_after_seconds",
+    "issued_at",
+    "expires_at"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "approve",
+              "reject"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "resource_type": {
+            "const": "policy"
+          },
+          "original_add_digest": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "revoke"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "resource_type": {
+            "const": "enforcement_action"
+          },
+          "original_add_digest": {
+            "$ref": "#/$defs/digest"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    }
+  }
+}

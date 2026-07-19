@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinelflow.example/contracts/enforcement/protected_ipv4_v1.schema.json",
+  "title": "SentinelFlow conservative IPv4 protection registry v1",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "protected-ipv4-v1"
+    },
+    "registry_source": {
+      "const": "IANA IPv4 Special-Purpose Address Space plus RFC 1112 multicast"
+    },
+    "authoritative_registry_url": {
+      "const": "https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml"
+    },
+    "registry_last_updated": {
+      "const": "2025-10-09"
+    },
+    "policy_version": {
+      "const": "sentinelflow-protected-ipv4-policy-v1"
+    },
+    "configured_additions_only": {
+      "const": true
+    },
+    "entries": {
+      "type": "array",
+      "minItems": 26,
+      "maxItems": 26,
+      "description": "Registry-order entries. Production protects every CIDR. Only the three RFC 5737 entries may be allowed by the isolated demo profile after namespace and host-ruleset proof.",
+      "items": {
+        "$ref": "#/$defs/entry"
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "registry_source",
+    "authoritative_registry_url",
+    "registry_last_updated",
+    "policy_version",
+    "configured_additions_only",
+    "entries"
+  ],
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "entry_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$"
+        },
+        "cidrs": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2,
+          "items": {
+            "type": "string",
+            "pattern": "^(?:[0-9]{1,3}\\.){3}[0-9]{1,3}/(?:[0-9]|[12][0-9]|3[0-2])$"
+          }
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "reference": {
+          "type": "string",
+          "pattern": "^RFC[0-9]+(?: section [0-9A-Za-z.]+)?$"
+        },
+        "source": {
+          "enum": [
+            "iana-special-purpose",
+            "rfc1112-multicast"
+          ]
+        },
+        "production_protected": {
+          "const": true
+        },
+        "demo_exception_allowed": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "entry_id",
+        "cidrs",
+        "name",
+        "reference",
+        "source",
+        "production_protected",
+        "demo_exception_allowed"
+      ]
+    }
+  }
+}

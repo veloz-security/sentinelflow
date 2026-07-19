@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinelflow.example/contracts/enforcement/nft_inspect_v1.schema.json",
+  "title": "SentinelFlow read-only nftables inspection artifact v1",
+  "description": "A system-generated, non-HIL, read-only request that permits only the executor's fixed nft --json list-set read-back path. It cannot add, delete, refresh TTL, or reuse mutation approval authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "nft-inspect-v1"
+    },
+    "operation": {
+      "const": "inspect"
+    },
+    "action_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "target_ipv4": {
+      "type": "string",
+      "format": "ipv4",
+      "minLength": 7,
+      "maxLength": 15
+    },
+    "original_add_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "owned_schema_digest": {
+      "$ref": "#/$defs/digest",
+      "description": "SHA-256 of RFC 8785/JCS bytes of nft_base_chain_v1.live.json."
+    },
+    "purpose": {
+      "enum": [
+        "reconciliation",
+        "expiry_confirmation",
+        "operator_status"
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "operation",
+    "action_id",
+    "target_ipv4",
+    "original_add_digest",
+    "owned_schema_digest",
+    "purpose"
+  ],
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    }
+  }
+}

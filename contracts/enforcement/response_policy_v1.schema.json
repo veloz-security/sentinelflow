@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinelflow.example/contracts/enforcement/response_policy_v1.schema.json",
+  "title": "SentinelFlow immutable response policy v1",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "response-policy-v1"
+    },
+    "policy_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "policy_version": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 2147483647
+    },
+    "incident_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "analysis_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "action": {
+      "const": "block_ip"
+    },
+    "target_ipv4": {
+      "type": "string",
+      "format": "ipv4",
+      "minLength": 7,
+      "maxLength": 15
+    },
+    "ttl_seconds": {
+      "type": "integer",
+      "minimum": 60,
+      "maximum": 86400
+    },
+    "evidence_snapshot_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "evidence_ids": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 50,
+      "description": "Duplicate-free IDs in strict ascending UTF-8 byte order; application validation rejects rather than reorders.",
+      "items": {
+        "$ref": "#/$defs/uuid"
+      }
+    },
+    "rationale_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "schema_version",
+    "policy_id",
+    "policy_version",
+    "incident_id",
+    "analysis_id",
+    "action",
+    "target_ipv4",
+    "ttl_seconds",
+    "evidence_snapshot_digest",
+    "evidence_ids",
+    "rationale_digest",
+    "created_at"
+  ],
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    }
+  }
+}

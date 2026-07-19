@@ -1,0 +1,139 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: ./scripts/check-backend.sh
+
+  database:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.31.1
+      - run: ./db/test/verify.sh
+
+  nft-namespace:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - run: ./scripts/preflight-nft-namespace.sh
+
+  contracts-and-docs:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24.13.0
+      - run: node scripts/generate-contract-vectors.mjs --check
+      - run: node scripts/validate-docs.mjs
+      - run: npx --yes markdownlint-cli@0.49.1 --disable MD013 MD024 -- README.md AGENTS.md docs/*.md
+      - run: git diff --check
+
+  frontend:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24.13.0
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm --prefix web ci --ignore-scripts
+      - run: npx playwright install --with-deps chromium firefox webkit
+        working-directory: web
+      - run: npm --prefix web run verify
+
+  supply-chain:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24.13.0
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: ./scripts/check-supply-chain.sh
+        env:
+          SENTINELFLOW_IMAGE_REPORT_DIR: ${{ runner.temp }}/sentinelflow-image-reports
+          SENTINELFLOW_SBOM_OUTPUT: ${{ runner.temp }}/sentinelflow.spdx.json
+          SOURCE_DATE_EPOCH: "0"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: sentinelflow-source-sbom
+          path: ${{ runner.temp }}/sentinelflow.spdx.json
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: sentinelflow-image-evidence
+          path: ${{ runner.temp }}/sentinelflow-image-reports
+          if-no-files-found: error
+          retention-days: 7
+
+  observability:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - run: make check-observability
+
+  operations:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24.13.0
+      - run: make check-export check-threshold-tuning
+
+  recovery:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: make check-recovery
+
+  security:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24.13.0
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm --prefix web ci --ignore-scripts
+      - run: ./scripts/check-security.sh

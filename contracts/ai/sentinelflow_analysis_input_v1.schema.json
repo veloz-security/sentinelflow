@@ -1,0 +1,277 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinelflow.example/contracts/ai/sentinelflow_analysis_input_v1.schema.json",
+  "title": "SentinelFlow compact analysis input v1",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "sentinelflow_analysis_input_v1"
+    },
+    "incident_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "incident_version": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 2147483647
+    },
+    "analysis_attempt_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "prompt_version": {
+      "const": "sentinelflow_system_prompt_v1"
+    },
+    "output_schema_version": {
+      "const": "sentinelflow_analysis_v1"
+    },
+    "source_ip": {
+      "type": "string",
+      "format": "ipv4",
+      "minLength": 7,
+      "maxLength": 15
+    },
+    "service_label": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+    },
+    "window_start": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "window_end": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "detector_config_version": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9._-]{0,63}$"
+    },
+    "source_health_status": {
+      "const": "complete"
+    },
+    "signals": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "description": "Duplicate-free signal objects in strict ascending signal_id UTF-8 byte order; application validation rejects rather than reorders.",
+      "items": {
+        "$ref": "#/$defs/signal"
+      }
+    },
+    "evidence_refs": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 50,
+      "description": "One output-addressable reference per deterministic signal, with evidence_id byte-equal to signal_id and the same rule/digest/count. References are duplicate-free and strictly ascending by evidence_id UTF-8 bytes. The server expands every reference to its complete retained event set; sampling or truncation is forbidden.",
+      "items": {
+        "$ref": "#/$defs/signal_ref"
+      }
+    },
+    "historical_impact": {
+      "$ref": "#/$defs/historical_impact"
+    },
+    "allowed_policy": {
+      "$ref": "#/$defs/allowed_policy"
+    }
+  },
+  "required": [
+    "schema_version",
+    "incident_id",
+    "incident_version",
+    "analysis_attempt_id",
+    "generated_at",
+    "prompt_version",
+    "output_schema_version",
+    "source_ip",
+    "service_label",
+    "window_start",
+    "window_end",
+    "detector_config_version",
+    "source_health_status",
+    "signals",
+    "evidence_refs",
+    "historical_impact",
+    "allowed_policy"
+  ],
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "signal": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "signal_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "rule_id": {
+          "enum": [
+            "path_scan.v1",
+            "request_burst.v1",
+            "login_bruteforce.v1",
+            "credential_stuffing.v1"
+          ]
+        },
+        "classification": {
+          "enum": [
+            "path_scan",
+            "request_burst",
+            "brute_force",
+            "credential_stuffing"
+          ]
+        },
+        "window_start": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "window_end": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "event_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "distinct_account_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "distinct_suspicious_path_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8
+        },
+        "evidence_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      },
+      "required": [
+        "signal_id",
+        "rule_id",
+        "classification",
+        "window_start",
+        "window_end",
+        "event_count",
+        "distinct_account_count",
+        "distinct_suspicious_path_count",
+        "evidence_digest"
+      ]
+    },
+    "signal_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "evidence_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "kind": {
+          "const": "deterministic_signal"
+        },
+        "rule_id": {
+          "enum": [
+            "path_scan.v1",
+            "request_burst.v1",
+            "login_bruteforce.v1",
+            "credential_stuffing.v1"
+          ]
+        },
+        "signal_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "expanded_event_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        }
+      },
+      "required": [
+        "evidence_id",
+        "kind",
+        "rule_id",
+        "signal_digest",
+        "expanded_event_count"
+      ]
+    },
+    "historical_impact": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "lookback_start": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "lookback_end": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "coverage": {
+          "const": "complete"
+        },
+        "successful_auth_seen": {
+          "const": false
+        },
+        "impact_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      },
+      "required": [
+        "lookback_start",
+        "lookback_end",
+        "coverage",
+        "successful_auth_seen",
+        "impact_digest"
+      ]
+    },
+    "allowed_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "const": "block_ip"
+        },
+        "target_ip": {
+          "type": "string",
+          "format": "ipv4",
+          "minLength": 7,
+          "maxLength": 15
+        },
+        "minimum_ttl_seconds": {
+          "const": 60
+        },
+        "default_ttl_seconds": {
+          "const": 1800
+        },
+        "maximum_ttl_seconds": {
+          "const": 86400
+        },
+        "table": {
+          "const": "sentinelflow"
+        },
+        "set": {
+          "const": "blacklist_ipv4"
+        }
+      },
+      "required": [
+        "action",
+        "target_ip",
+        "minimum_ttl_seconds",
+        "default_ttl_seconds",
+        "maximum_ttl_seconds",
+        "table",
+        "set"
+      ]
+    }
+  }
+}

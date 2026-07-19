@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinelflow.example/contracts/fixtures/demo_history_dataset_v1.schema.json",
+  "title": "SentinelFlow synthetic demo-history dataset v1",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "demo-history-dataset-v1"
+    },
+    "dataset_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "path_catalog_version": {
+      "const": "path-catalog-v1"
+    },
+    "coverage_start": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "coverage_end": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "records": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100000,
+      "description": "Synthetic records in event-time then event_id byte order. Exact observed paths, targets, queries, bodies, headers, and raw accounts are forbidden.",
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "../events/gateway_http_v1.schema.json"
+          },
+          {
+            "$ref": "../events/auth_event_v1.schema.json"
+          }
+        ]
+      }
+    },
+    "source_health": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 16,
+      "items": {
+        "$ref": "#/$defs/source_coverage"
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "dataset_id",
+    "path_catalog_version",
+    "coverage_start",
+    "coverage_end",
+    "records",
+    "source_health"
+  ],
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "source_coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sender_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+        },
+        "sender_epoch": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{22}$"
+        },
+        "coverage_start": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "coverage_end": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "coverage_status": {
+          "const": "complete"
+        },
+        "first_sequence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "last_sequence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "unresolved_intervals": {
+          "type": "array",
+          "maxItems": 0,
+          "items": false
+        }
+      },
+      "required": [
+        "sender_id",
+        "sender_epoch",
+        "coverage_start",
+        "coverage_end",
+        "coverage_status",
+        "first_sequence",
+        "last_sequence",
+        "unresolved_intervals"
+      ]
+    }
+  }
+}

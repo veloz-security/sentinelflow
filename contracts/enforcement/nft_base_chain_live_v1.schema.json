@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinelflow.example/contracts/enforcement/nft_base_chain_live_v1.schema.json",
+  "title": "SentinelFlow semantic nftables live read-back v1",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "nft-base-chain-live-v1"
+    },
+    "family": {
+      "const": "inet"
+    },
+    "table": {
+      "const": "sentinelflow"
+    },
+    "set": {
+      "$ref": "#/$defs/set"
+    },
+    "chain": {
+      "$ref": "#/$defs/chain"
+    },
+    "rule": {
+      "$ref": "#/$defs/rule"
+    }
+  },
+  "required": [
+    "schema_version",
+    "family",
+    "table",
+    "set",
+    "chain",
+    "rule"
+  ],
+  "$defs": {
+    "set": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "const": "blacklist_ipv4"
+        },
+        "type": {
+          "const": "ipv4_addr"
+        },
+        "flags": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "prefixItems": [
+            {
+              "const": "timeout"
+            }
+          ],
+          "items": false
+        }
+      },
+      "required": [
+        "name",
+        "type",
+        "flags"
+      ]
+    },
+    "chain": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "const": "gateway_input"
+        },
+        "type": {
+          "const": "filter"
+        },
+        "hook": {
+          "const": "input"
+        },
+        "priority": {
+          "const": 0
+        },
+        "policy": {
+          "const": "accept"
+        }
+      },
+      "required": [
+        "name",
+        "type",
+        "hook",
+        "priority",
+        "policy"
+      ]
+    },
+    "rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "protocol": {
+          "const": "tcp"
+        },
+        "destination_port": {
+          "const": 8080
+        },
+        "source_set": {
+          "const": "blacklist_ipv4"
+        },
+        "verdict": {
+          "const": "drop"
+        },
+        "owned_rule_count": {
+          "const": 1
+        }
+      },
+      "required": [
+        "protocol",
+        "destination_port",
+        "source_set",
+        "verdict",
+        "owned_rule_count"
+      ]
+    }
+  }
+}

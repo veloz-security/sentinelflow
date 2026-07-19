@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinelflow.example/contracts/enforcement/executor_response_envelope_v1.schema.json",
+  "title": "SentinelFlow private UDS executor response envelope v1",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "executor-response-envelope-v1"
+    },
+    "result_jcs_b64url": {
+      "$ref": "#/$defs/base64url"
+    },
+    "result_signature_b64url": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{86}$"
+    }
+  },
+  "required": [
+    "schema_version",
+    "result_jcs_b64url",
+    "result_signature_b64url"
+  ],
+  "$defs": {
+    "base64url": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "minLength": 1,
+      "maxLength": 21846
+    }
+  }
+}

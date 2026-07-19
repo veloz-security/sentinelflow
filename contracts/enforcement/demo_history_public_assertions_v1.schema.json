@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinelflow.example/contracts/enforcement/demo_history_public_assertions_v1.schema.json",
+  "title": "SentinelFlow run-scoped demo-history public assertions v1",
+  "description": "Public, non-authorizing handoff reconstructed after verification of one run-scoped signed demo-history envelope. This object intentionally excludes the signature, private key, raw dataset, imported rows, and any signing or execution authority. Checked vectors are public-test fixtures and are never deployment authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "clock_at": {
+      "$ref": "#/$defs/millisecondTimestamp"
+    },
+    "impact_source_health_digest": {
+      "const": "sha256:e2493dd1befd0d0a8ed321b6ff6ee3c0078a91692197c6b90c65d728e17cb1e3"
+    },
+    "import_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "issued_at": {
+      "$ref": "#/$defs/millisecondTimestamp"
+    },
+    "manifest_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "manifest_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "public_key_b64url": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{43}$",
+      "not": {
+        "const": "_FHNjmIYoaONpH7QAjDwWAgW7RO6MwOsXeuRFUiQgCU"
+      }
+    },
+    "run_scope": {
+      "type": "string",
+      "pattern": "^sentinelflow-demo-run:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "schema_version": {
+      "const": "demo-history-public-assertions-v1"
+    },
+    "signature_verification_digest": {
+      "$ref": "#/$defs/digest"
+    }
+  },
+  "required": [
+    "clock_at",
+    "impact_source_health_digest",
+    "import_id",
+    "issued_at",
+    "manifest_digest",
+    "manifest_id",
+    "public_key_b64url",
+    "run_scope",
+    "schema_version",
+    "signature_verification_digest"
+  ],
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "millisecondTimestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$"
+    }
+  }
+}

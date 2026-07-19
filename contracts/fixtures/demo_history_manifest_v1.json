@@ -1,0 +1,25 @@
+{
+  "schema_version": "demo-history-signed-manifest-v1",
+  "fixture_only": true,
+  "key_scope": "public-test-only; actual demo runs must generate a run-scoped key and manifest",
+  "manifest": {
+    "schema_version": "demo-history-v1",
+    "manifest_id": "019b0000-0000-7000-8000-000000000500",
+    "profile": "isolated-demo",
+    "clock_at": "2026-07-18T02:00:00.000Z",
+    "dataset_id": "019b0000-0000-7000-8000-000000000100",
+    "dataset_schema_version": "demo-history-dataset-v1",
+    "dataset_digest": "sha256:0686d45e11e029dd2e4712a1de981f3c0e5b92ccff45b1eaddb54c066232dd00",
+    "dataset_record_count": 4,
+    "import_id": "019b0000-0000-7000-8000-000000000501",
+    "coverage_start": "2026-07-17T02:00:00.000Z",
+    "coverage_end": "2026-07-18T02:00:00.000Z",
+    "path_catalog_version": "path-catalog-v1",
+    "source_health_digest": "sha256:1e3d4a6754b86e4bdaf7fd4a259c1676deb6878629033962393c866e51c9d3fe",
+    "issued_at": "2026-07-18T02:00:00.000Z"
+  },
+  "manifest_jcs_b64url": "eyJjbG9ja19hdCI6IjIwMjYtMDctMThUMDI6MDA6MDAuMDAwWiIsImNvdmVyYWdlX2VuZCI6IjIwMjYtMDctMThUMDI6MDA6MDAuMDAwWiIsImNvdmVyYWdlX3N0YXJ0IjoiMjAyNi0wNy0xN1QwMjowMDowMC4wMDBaIiwiZGF0YXNldF9kaWdlc3QiOiJzaGEyNTY6MDY4NmQ0NWUxMWUwMjlkZDJlNDcxMmExZGU5ODFmM2MwZTViOTJjY2ZmNDViMWVhZGRiNTRjMDY2MjMyZGQwMCIsImRhdGFzZXRfaWQiOiIwMTliMDAwMC0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMDAxMDAiLCJkYXRhc2V0X3JlY29yZF9jb3VudCI6NCwiZGF0YXNldF9zY2hlbWFfdmVyc2lvbiI6ImRlbW8taGlzdG9yeS1kYXRhc2V0LXYxIiwiaW1wb3J0X2lkIjoiMDE5YjAwMDAtMDAwMC03MDAwLTgwMDAtMDAwMDAwMDAwNTAxIiwiaXNzdWVkX2F0IjoiMjAyNi0wNy0xOFQwMjowMDowMC4wMDBaIiwibWFuaWZlc3RfaWQiOiIwMTliMDAwMC0wMDAwLTcwMDAtODAwMC0wMDAwMDAwMDA1MDAiLCJwYXRoX2NhdGFsb2dfdmVyc2lvbiI6InBhdGgtY2F0YWxvZy12MSIsInByb2ZpbGUiOiJpc29sYXRlZC1kZW1vIiwic2NoZW1hX3ZlcnNpb24iOiJkZW1vLWhpc3RvcnktdjEiLCJzb3VyY2VfaGVhbHRoX2RpZ2VzdCI6InNoYTI1NjoxZTNkNGE2NzU0Yjg2ZTRiZGFmN2ZkNGEyNTljMTY3NmRlYjY4Nzg2MjkwMzM5NjIzOTNjODY2ZTUxYzlkM2ZlIn0",
+  "manifest_digest": "sha256:da25f169a263cd9e15bf3edb4617762d0a3c49a66478837a878a81b75d32bd7e",
+  "signature_b64url": "mkIgYWTG46JwPjeddEV7S8iXNuwWtWC8XugaSOye578tG6SRnonVqrE-M2Lur0L-IdYUUKvNPEluaRV5_Rq9CA",
+  "public_key_b64url": "_FHNjmIYoaONpH7QAjDwWAgW7RO6MwOsXeuRFUiQgCU"
+}

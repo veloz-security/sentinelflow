@@ -1,0 +1,26 @@
+{
+  "schema_version": "nft-base-chain-live-v1",
+  "family": "inet",
+  "table": "sentinelflow",
+  "set": {
+    "name": "blacklist_ipv4",
+    "type": "ipv4_addr",
+    "flags": [
+      "timeout"
+    ]
+  },
+  "chain": {
+    "name": "gateway_input",
+    "type": "filter",
+    "hook": "input",
+    "priority": 0,
+    "policy": "accept"
+  },
+  "rule": {
+    "protocol": "tcp",
+    "destination_port": 8080,
+    "source_set": "blacklist_ipv4",
+    "verdict": "drop",
+    "owned_rule_count": 1
+  }
+}

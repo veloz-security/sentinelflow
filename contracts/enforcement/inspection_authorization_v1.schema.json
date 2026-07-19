@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinelflow.example/contracts/enforcement/inspection_authorization_v1.schema.json",
+  "title": "SentinelFlow read-only system inspection authorization v1",
+  "description": "Separate non-HIL authority for a fixed read-only executor inspection. It carries no administrator decision nonce or HIL reason and cannot authorize mutation, TTL refresh, add, or revoke.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "inspection-authorization-v1"
+    },
+    "authorization_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "purpose": {
+      "enum": [
+        "reconciliation",
+        "expiry_confirmation",
+        "operator_status"
+      ]
+    },
+    "action_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "policy_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "policy_version": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 2147483647
+    },
+    "target_ipv4": {
+      "type": "string",
+      "format": "ipv4",
+      "minLength": 7,
+      "maxLength": 15
+    },
+    "original_add_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "original_authorization_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "evidence_snapshot_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "validation_snapshot_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "artifact_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "owned_schema_digest": {
+      "$ref": "#/$defs/digest",
+      "description": "SHA-256 of RFC 8785/JCS bytes of nft_base_chain_v1.live.json."
+    },
+    "scheduler_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"
+    },
+    "requested_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "valid_until": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "idempotency_key_digest": {
+      "$ref": "#/$defs/digest"
+    }
+  },
+  "required": [
+    "schema_version",
+    "authorization_id",
+    "purpose",
+    "action_id",
+    "policy_id",
+    "policy_version",
+    "target_ipv4",
+    "original_add_digest",
+    "original_authorization_digest",
+    "evidence_snapshot_digest",
+    "validation_snapshot_digest",
+    "artifact_digest",
+    "owned_schema_digest",
+    "scheduler_id",
+    "requested_at",
+    "valid_until",
+    "idempotency_key_digest"
+  ],
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    }
+  }
+}

@@ -1,0 +1,168 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "enum": [
+        "sentinelflow_analysis_v1"
+      ]
+    },
+    "incident_summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1600
+    },
+    "classification": {
+      "type": "string",
+      "enum": [
+        "credential_stuffing",
+        "brute_force",
+        "path_scan",
+        "request_burst",
+        "mixed",
+        "unknown"
+      ]
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "uncertainty": {
+      "type": "string",
+      "maxLength": 800
+    },
+    "false_positive_factors": {
+      "type": "array",
+      "maxItems": 5,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 240
+      }
+    },
+    "evidence_ids": {
+      "type": "array",
+      "description": "Stable evidence IDs. Application validation requires duplicate-free, strictly ascending UTF-8 byte order and byte-identical values in the top-level, policy, and command arrays; the server rejects rather than reorders invalid model output.",
+      "minItems": 1,
+      "maxItems": 50,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "enum": [
+            "response-policy-v1"
+          ]
+        },
+        "action": {
+          "type": "string",
+          "enum": [
+            "block_ip"
+          ]
+        },
+        "target_ip": {
+          "type": "string",
+          "format": "ipv4",
+          "minLength": 7,
+          "maxLength": 15
+        },
+        "ttl_seconds": {
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 86400
+        },
+        "evidence_ids": {
+          "type": "array",
+          "description": "Must be byte-identical to the validated top-level evidence_ids array, with no duplicates and strict ascending UTF-8 byte order enforced by application validation.",
+          "minItems": 1,
+          "maxItems": 50,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 800
+        }
+      },
+      "required": [
+        "schema_version",
+        "action",
+        "target_ip",
+        "ttl_seconds",
+        "evidence_ids",
+        "rationale"
+      ]
+    },
+    "nftables_command_candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "enum": [
+            "nft-blacklist-v1"
+          ]
+        },
+        "target_ip": {
+          "type": "string",
+          "format": "ipv4",
+          "minLength": 7,
+          "maxLength": 15
+        },
+        "timeout": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]{0,4}[smh]$",
+          "minLength": 2,
+          "maxLength": 8
+        },
+        "evidence_ids": {
+          "type": "array",
+          "description": "Must be byte-identical to the validated top-level evidence_ids array, with no duplicates and strict ascending UTF-8 byte order enforced by application validation.",
+          "minItems": 1,
+          "maxItems": 50,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "command": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "required": [
+        "schema_version",
+        "target_ip",
+        "timeout",
+        "evidence_ids",
+        "command"
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "incident_summary",
+    "classification",
+    "confidence",
+    "uncertainty",
+    "false_positive_factors",
+    "evidence_ids",
+    "policy",
+    "nftables_command_candidate"
+  ]
+}

@@ -1,0 +1,373 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinelflow.example/contracts/api/analysis_summary_v1.schema.json",
+  "title": "SentinelFlow investigation analysis summary v1",
+  "description": "Strict wire contract for latest_analysis. model, reasoning_effort, and rate_card_version are always present and nullable only for the deterministic stub. A no-call attempt does not produce this object; it is represented by the incident analysis failure fields.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/started"
+    },
+    {
+      "$ref": "#/$defs/succeeded"
+    },
+    {
+      "$ref": "#/$defs/failed"
+    }
+  ],
+  "$defs": {
+    "started": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "analysis_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "incident_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "provider_kind": {
+          "type": "string",
+          "enum": [
+            "openai_responses",
+            "deterministic_stub"
+          ]
+        },
+        "adapter_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reasoning_effort": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "rate_card_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "result_state": {
+          "const": "started"
+        },
+        "started_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "false_positive_factors": {
+          "$ref": "#/$defs/falsePositiveFactors"
+        }
+      },
+      "required": [
+        "analysis_id",
+        "incident_version",
+        "provider_kind",
+        "adapter_id",
+        "model",
+        "reasoning_effort",
+        "rate_card_version",
+        "result_state",
+        "started_at",
+        "false_positive_factors"
+      ],
+      "allOf": [
+        {
+          "$ref": "#/$defs/providerProvenance"
+        }
+      ]
+    },
+    "succeeded": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "analysis_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "incident_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "provider_kind": {
+          "type": "string",
+          "enum": [
+            "openai_responses",
+            "deterministic_stub"
+          ]
+        },
+        "adapter_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reasoning_effort": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "rate_card_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "result_state": {
+          "const": "succeeded"
+        },
+        "output_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1600
+        },
+        "classification": {
+          "$ref": "#/$defs/classification"
+        },
+        "confidence": {
+          "type": "string",
+          "pattern": "^(?:0(?:\\.[0-9]+)?|1(?:\\.0+)?)$",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "uncertainty": {
+          "type": "string",
+          "maxLength": 800
+        },
+        "started_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "completed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "false_positive_factors": {
+          "$ref": "#/$defs/falsePositiveFactors"
+        }
+      },
+      "required": [
+        "analysis_id",
+        "incident_version",
+        "provider_kind",
+        "adapter_id",
+        "model",
+        "reasoning_effort",
+        "rate_card_version",
+        "result_state",
+        "output_digest",
+        "summary",
+        "classification",
+        "confidence",
+        "uncertainty",
+        "started_at",
+        "completed_at",
+        "false_positive_factors"
+      ],
+      "allOf": [
+        {
+          "$ref": "#/$defs/providerProvenance"
+        }
+      ]
+    },
+    "failed": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "analysis_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "incident_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "provider_kind": {
+          "type": "string",
+          "enum": [
+            "openai_responses",
+            "deterministic_stub"
+          ]
+        },
+        "adapter_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reasoning_effort": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "rate_card_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "result_state": {
+          "const": "failed"
+        },
+        "failure_code": {
+          "type": "string",
+          "enum": [
+            "budget_exhausted",
+            "input_too_large",
+            "network_error",
+            "http_408",
+            "http_409",
+            "rate_limited",
+            "server_error",
+            "timeout",
+            "refused",
+            "incomplete",
+            "schema_invalid",
+            "evidence_invalid",
+            "unsupported_action",
+            "cancelled",
+            "configuration_error"
+          ]
+        },
+        "started_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "completed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "false_positive_factors": {
+          "$ref": "#/$defs/falsePositiveFactors"
+        }
+      },
+      "required": [
+        "analysis_id",
+        "incident_version",
+        "provider_kind",
+        "adapter_id",
+        "model",
+        "reasoning_effort",
+        "rate_card_version",
+        "result_state",
+        "failure_code",
+        "started_at",
+        "completed_at",
+        "false_positive_factors"
+      ],
+      "allOf": [
+        {
+          "$ref": "#/$defs/providerProvenance"
+        }
+      ]
+    },
+    "providerProvenance": {
+      "oneOf": [
+        {
+          "properties": {
+            "provider_kind": {
+              "const": "openai_responses"
+            },
+            "adapter_id": {
+              "const": "openai-responses-v1"
+            },
+            "model": {
+              "const": "gpt-5.6-sol"
+            },
+            "reasoning_effort": {
+              "const": "medium"
+            },
+            "rate_card_version": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          },
+          "required": [
+            "provider_kind",
+            "adapter_id",
+            "model",
+            "reasoning_effort",
+            "rate_card_version"
+          ]
+        },
+        {
+          "properties": {
+            "provider_kind": {
+              "const": "deterministic_stub"
+            },
+            "adapter_id": {
+              "const": "sentinelflow-deterministic-ai-stub-v1"
+            },
+            "model": {
+              "type": "null"
+            },
+            "reasoning_effort": {
+              "type": "null"
+            },
+            "rate_card_version": {
+              "type": "null"
+            }
+          },
+          "required": [
+            "provider_kind",
+            "adapter_id",
+            "model",
+            "reasoning_effort",
+            "rate_card_version"
+          ]
+        }
+      ]
+    },
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?Z$"
+    },
+    "classification": {
+      "type": "string",
+      "enum": [
+        "credential_stuffing",
+        "brute_force",
+        "path_scan",
+        "request_burst",
+        "mixed",
+        "unknown"
+      ]
+    },
+    "falsePositiveFactors": {
+      "type": "array",
+      "maxItems": 5,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 240
+      }
+    }
+  }
+}

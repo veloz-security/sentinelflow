@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinelflow.example/contracts/events/event_batch_v1.schema.json",
+  "title": "SentinelFlow atomic authenticated event batch v1",
+  "description": "The endpoint-scoped request HMAC input is endpoint_path + LF + sender_id + LF + timestamp + LF + nonce + LF + lowercase hex SHA-256 of the exact raw body. The X-Sentinel-Sender-ID header must byte-equal sender_id after authentication.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "event-batch-v1"
+    },
+    "sender_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+    },
+    "sender_epoch": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{22}$"
+    },
+    "batch_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "sent_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "records": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "gateway_http_v1.schema.json"
+          },
+          {
+            "$ref": "auth_event_v1.schema.json"
+          },
+          {
+            "$ref": "source_health_v1.schema.json"
+          },
+          {
+            "$ref": "source_coverage_v1.schema.json"
+          }
+        ]
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "sender_id",
+    "sender_epoch",
+    "batch_id",
+    "sequence",
+    "sent_at",
+    "records"
+  ]
+}

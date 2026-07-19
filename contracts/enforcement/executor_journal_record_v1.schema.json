@@ -1,0 +1,195 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinelflow.example/contracts/enforcement/executor_journal_record_v1.schema.json",
+  "title": "SentinelFlow fsynced executor replay journal record v1",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "executor-journal-record-v1"
+    },
+    "journal_sequence": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "phase": {
+      "enum": [
+        "started",
+        "terminal"
+      ]
+    },
+    "operation": {
+      "enum": [
+        "add",
+        "revoke",
+        "inspect"
+      ]
+    },
+    "capability_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "capability_jcs_b64url": {
+      "$ref": "#/$defs/base64url"
+    },
+    "capability_signature_b64url": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{86}$"
+    },
+    "capability_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "artifact_b64url": {
+      "$ref": "#/$defs/base64url"
+    },
+    "artifact_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "target_ipv4": {
+      "type": "string",
+      "format": "ipv4",
+      "minLength": 7,
+      "maxLength": 15
+    },
+    "owned_schema_digest": {
+      "$ref": "#/$defs/digest",
+      "description": "SHA-256 of RFC 8785/JCS bytes of nft_base_chain_v1.live.json."
+    },
+    "received_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "deadline": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "terminal_result_jcs_b64url": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/base64url"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "terminal_result_signature_b64url": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[A-Za-z0-9_-]{86}$"
+    },
+    "terminal_result_digest": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/digest"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "previous_record_digest": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/digest"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "record_checksum": {
+      "$ref": "#/$defs/digest",
+      "$comment": "SHA-256 over RFC 8785/JCS bytes of this record with record_checksum omitted; previous_record_digest chains the complete preceding record including its checksum."
+    }
+  },
+  "required": [
+    "schema_version",
+    "journal_sequence",
+    "phase",
+    "operation",
+    "capability_id",
+    "capability_jcs_b64url",
+    "capability_signature_b64url",
+    "capability_digest",
+    "artifact_b64url",
+    "artifact_digest",
+    "target_ipv4",
+    "owned_schema_digest",
+    "received_at",
+    "deadline",
+    "terminal_result_jcs_b64url",
+    "terminal_result_signature_b64url",
+    "terminal_result_digest",
+    "previous_record_digest",
+    "record_checksum"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "phase": {
+            "const": "started"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "terminal_result_jcs_b64url": {
+            "type": "null"
+          },
+          "terminal_result_signature_b64url": {
+            "type": "null"
+          },
+          "terminal_result_digest": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "phase": {
+            "const": "terminal"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "terminal_result_jcs_b64url": {
+            "$ref": "#/$defs/base64url"
+          },
+          "terminal_result_signature_b64url": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{86}$"
+          },
+          "terminal_result_digest": {
+            "$ref": "#/$defs/digest"
+          },
+          "previous_record_digest": {
+            "$ref": "#/$defs/digest"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "base64url": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "minLength": 1,
+      "maxLength": 21846
+    }
+  }
+}

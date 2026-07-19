@@ -1,0 +1,203 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinelflow.example/contracts/enforcement/hil_decision_v1.schema.json",
+  "title": "SentinelFlow consumed HIL decision v1",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "hil-decision-v1"
+    },
+    "decision_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "challenge_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "session_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "operation": {
+      "enum": [
+        "approve",
+        "reject",
+        "revoke"
+      ]
+    },
+    "decision": {
+      "enum": [
+        "approved",
+        "rejected",
+        "revoked"
+      ]
+    },
+    "resource_type": {
+      "enum": [
+        "policy",
+        "enforcement_action"
+      ]
+    },
+    "resource_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "resource_version": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 2147483647
+    },
+    "target_ipv4": {
+      "type": "string",
+      "format": "ipv4",
+      "minLength": 7,
+      "maxLength": 15
+    },
+    "policy_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "generated_artifact_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "canonical_artifact_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "original_add_digest": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/digest"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "evidence_snapshot_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "validation_snapshot_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "actor_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"
+    },
+    "reason_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "nonce_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "idempotency_key_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "decided_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "decision_valid_until": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "schema_version",
+    "decision_id",
+    "challenge_id",
+    "session_digest",
+    "operation",
+    "decision",
+    "resource_type",
+    "resource_id",
+    "resource_version",
+    "target_ipv4",
+    "policy_digest",
+    "generated_artifact_digest",
+    "canonical_artifact_digest",
+    "original_add_digest",
+    "evidence_snapshot_digest",
+    "validation_snapshot_digest",
+    "actor_id",
+    "reason_digest",
+    "nonce_digest",
+    "idempotency_key_digest",
+    "decided_at",
+    "decision_valid_until"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "approve"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "decision": {
+            "const": "approved"
+          },
+          "resource_type": {
+            "const": "policy"
+          },
+          "original_add_digest": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "reject"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "decision": {
+            "const": "rejected"
+          },
+          "resource_type": {
+            "const": "policy"
+          },
+          "original_add_digest": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "revoke"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "decision": {
+            "const": "revoked"
+          },
+          "resource_type": {
+            "const": "enforcement_action"
+          },
+          "original_add_digest": {
+            "$ref": "#/$defs/digest"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    }
+  }
+}

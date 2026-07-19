@@ -1,0 +1,18 @@
+# syntax=docker/dockerfile:1.12@sha256:93bfd3b68c109427185cd78b4779fc82b484b0b7618e36d0f104d4d801e66d25
+
+# The upstream image starts as root and uses the bundled gosu binary to drop
+# privileges. SentinelFlow always runs PostgreSQL as the image's fixed
+# postgres UID/GID, so keeping that extra privileged transition binary only
+# expands the final runtime surface.
+FROM postgres:17-alpine@sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193
+
+ARG SOURCE_DATE_EPOCH=0
+
+USER 0:0
+RUN set -eu; \
+    test -x /usr/local/bin/gosu; \
+    rm /usr/local/bin/gosu; \
+    test ! -e /usr/local/bin/gosu; \
+    test "$(stat -c '%u:%g' /var/lib/postgresql/data)" = "70:70"
+
+USER 70:70

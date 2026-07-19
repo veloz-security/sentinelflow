@@ -1,0 +1,211 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinelflow.example/contracts/enforcement/execution_result_v1.schema.json",
+  "title": "SentinelFlow executor result attestation v1",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "execution-result-v1"
+    },
+    "result_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "capability_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "capability_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "operation": {
+      "enum": [
+        "add",
+        "revoke",
+        "inspect"
+      ]
+    },
+    "action_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "artifact_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "target_ipv4": {
+      "type": "string",
+      "format": "ipv4",
+      "minLength": 7,
+      "maxLength": 15
+    },
+    "classification": {
+      "enum": [
+        "applied",
+        "recovered_active",
+        "revoked",
+        "inspect_active",
+        "inspect_absent",
+        "inspect_mismatch",
+        "failed",
+        "indeterminate"
+      ]
+    },
+    "nft_exit_class": {
+      "enum": [
+        "success",
+        "not_invoked",
+        "nonzero",
+        "timeout",
+        "signaled",
+        null
+      ]
+    },
+    "readback_state": {
+      "enum": [
+        "active",
+        "absent",
+        "mismatch",
+        "unavailable"
+      ]
+    },
+    "element_handle": {
+      "type": "null",
+      "description": "Reserved null field. The pinned nft list-set response does not expose per-element handles; the set handle MUST NOT be substituted."
+    },
+    "remaining_ttl_seconds": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1,
+      "maximum": 86400
+    },
+    "owned_schema_digest": {
+      "$ref": "#/$defs/digest",
+      "description": "SHA-256 of RFC 8785/JCS bytes of the verified nft_base_chain_v1.live.json semantic read-back; never the raw .nft file digest."
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "journal_sequence": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "error_code": {
+      "enum": [
+        "none",
+        "capability_invalid",
+        "artifact_mismatch",
+        "schema_mismatch",
+        "target_exists",
+        "target_absent",
+        "nft_failed",
+        "readback_failed",
+        "readback_mismatch",
+        "journal_failed",
+        "deadline_exceeded",
+        "replay_conflict",
+        "indeterminate"
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "result_id",
+    "capability_id",
+    "capability_digest",
+    "operation",
+    "action_id",
+    "artifact_digest",
+    "target_ipv4",
+    "classification",
+    "nft_exit_class",
+    "readback_state",
+    "element_handle",
+    "remaining_ttl_seconds",
+    "owned_schema_digest",
+    "started_at",
+    "completed_at",
+    "journal_sequence",
+    "error_code"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "add"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "classification": {
+            "enum": [
+              "applied",
+              "recovered_active",
+              "failed",
+              "indeterminate"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "revoke"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "classification": {
+            "enum": [
+              "revoked",
+              "failed",
+              "indeterminate"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "inspect"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "classification": {
+            "enum": [
+              "inspect_active",
+              "inspect_absent",
+              "inspect_mismatch",
+              "failed",
+              "indeterminate"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    }
+  }
+}

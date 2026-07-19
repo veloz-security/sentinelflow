@@ -1,0 +1,228 @@
+groups:
+  - name: sentinelflow-control-plane
+    interval: 30s
+    rules:
+      - alert: SentinelFlowControlMetricsTargetUnavailable
+        expr: absent(up{job="sentinelflow-control"}) or up{job="sentinelflow-control"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: The aggregate control-plane metrics target is absent or unavailable.
+      - alert: SentinelFlowGatewayMetricsTargetUnavailable
+        expr: absent(up{job="sentinelflow-gateway"}) or up{job="sentinelflow-gateway"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: The Gateway metrics target is absent or unavailable.
+      - alert: SentinelFlowOutboxReadyBacklog
+        expr: max(sentinelflow_control_outbox_oldest_ready_age_seconds) > 60 or max(sentinelflow_control_outbox_lease_expiry_lag_seconds) > 30
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: Control-plane work has remained ready for more than one minute.
+      - alert: SentinelFlowLifecycleScheduleOverdue
+        expr: max(sentinelflow_control_lifecycle_oldest_due_age_seconds) > 60 or max(sentinelflow_control_lifecycle_lease_expiry_lag_seconds) > 30
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: Enforcement lifecycle inspection work is overdue or has an expired lease.
+      - alert: SentinelFlowLifecycleScheduleRetrying
+        expr: sum(sentinelflow_control_lifecycle_schedules{state="retry"}) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Enforcement lifecycle inspection work has remained in retry state.
+      - alert: SentinelFlowLifecycleScheduleDead
+        expr: sum(sentinelflow_control_lifecycle_schedules{state="dead"}) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: Enforcement lifecycle inspection work requires operator recovery.
+      - alert: SentinelFlowDeadLetterUnresolved
+        expr: sum(sentinelflow_control_dead_letters_unresolved) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: At least one unresolved control-plane job requires operator recovery.
+      - alert: SentinelFlowSourceCoverageDegraded
+        expr: sum(sentinelflow_control_expected_sources{state=~"missing_report|open_gap|checkpoint_stale|degraded|lost"}) > 0 or sum(sentinelflow_control_sources_current{state=~"degraded|lost"}) > 0 or sentinelflow_event_sender_degraded > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: Expected evidence coverage is incomplete or degraded; enforcement must fail closed.
+      - alert: SentinelFlowEventStreamUnavailable
+        expr: min(sentinelflow_control_event_last_seen_available) == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: One required event endpoint has not produced an authenticated batch.
+      - alert: SentinelFlowEventLag
+        expr: max(sentinelflow_control_event_lag_seconds) > 300
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: A required event endpoint has not advanced for five minutes.
+      - alert: SentinelFlowAuthBindingOverdue
+        expr: sentinelflow_control_auth_binding_overdue > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: Auth evidence remains unbound beyond its trusted correlation deadline.
+      - alert: SentinelFlowGatewayEventDrop
+        expr: increase(sentinelflow_event_dropped_total[5m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: The Gateway event queue dropped evidence records.
+      - alert: SentinelFlowGatewayEventQueueSaturation
+        expr: sentinelflow_event_queue_capacity > 0 and sentinelflow_event_queue_depth / sentinelflow_event_queue_capacity >= 0.8
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: The Gateway event queue has remained at or above 80 percent capacity.
+      - alert: SentinelFlowEventDeliveryFailure
+        expr: sum(increase(sentinelflow_event_batch_attempts_total{outcome=~"retryable_error|permanent_error"}[5m])) > 0 or sum(increase(sentinelflow_event_batch_retries_total[5m])) > 3
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: Gateway event delivery is failing or repeatedly retrying; evidence coverage is degraded.
+      - alert: SentinelFlowGatewayLatencySLOBreach
+        expr: histogram_quantile(0.95, sum by (le) (rate(sentinelflow_gateway_request_duration_seconds_bucket[5m]))) > 0.005
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Observed end-to-end Gateway request p95 exceeds five milliseconds; isolate origin latency before attributing proxy overhead.
+      - alert: SentinelFlowGatewayOriginFailure
+        expr: sum(increase(sentinelflow_gateway_proxy_errors_total{reason=~"upstream|timeout|response"}[5m])) > 0 or sum(increase(sentinelflow_gateway_requests_total{status_class="5xx"}[5m])) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: The fixed private origin is timing out or returning an unusable response.
+      - alert: SentinelFlowAIProviderOutage
+        expr: sentinelflow_control_ai_failures_5m >= 3 or sentinelflow_control_ai_started_stale > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: AI analysis is repeatedly failing or an attempt is stale.
+      - alert: SentinelFlowAIBudgetExhausted
+        expr: sum(sentinelflow_control_ai_budget_micro_usd{kind="limit"}) > 0 and sum(sentinelflow_control_ai_budget_micro_usd{kind="remaining"}) <= 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: The configured UTC-day AI analysis budget is exhausted.
+      - alert: SentinelFlowValidationFailure
+        expr: sentinelflow_control_validation_failures_5m > 0 or sentinelflow_control_validation_started_stale > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: Policy validation rejected, interrupted, or stalled work.
+      - alert: SentinelFlowApprovalBacklog
+        expr: sum(sentinelflow_control_hil_challenges{state="pending"}) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Administrator decision work is accumulating.
+      - alert: SentinelFlowApprovalExpired
+        expr: sentinelflow_control_hil_expired_recent_5m > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: An exact-artifact HIL challenge expired in the last five minutes.
+      - alert: SentinelFlowDispatchFailure
+        expr: sentinelflow_control_dispatch_failures_5m > 0 or sum(sentinelflow_control_dead_letters_unresolved{kind=~"dispatch_add|dispatch_revoke|dispatch_inspect|reconcile"}) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: A dispatcher or executor operation failed, became indeterminate, or dead-lettered.
+      - alert: SentinelFlowExecutionReplayConflict
+        expr: sentinelflow_control_execution_replay_conflicts_retained > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: An executor capability was replayed with conflicting persisted bytes.
+      - alert: SentinelFlowCapabilityExpiredUnused
+        expr: sum(sentinelflow_control_execution_capabilities{state="unconsumed_expired"}) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: A signed one-shot executor capability expired without a persisted consumption result.
+      - alert: SentinelFlowRevocationFailure
+        expr: sum(sentinelflow_control_revocations{state=~"failed|indeterminate"}) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: An administrator-authorized revocation failed or is indeterminate and requires reconciliation.
+      - alert: SentinelFlowEnforcementFailure
+        expr: sum(sentinelflow_control_enforcement_actions{state=~"failed|indeterminate"}) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: An enforcement action requires reconciliation or operator recovery.
+      - alert: SentinelFlowEnforcementExpiryLag
+        expr: sentinelflow_control_enforcement_expiry_lag_seconds > 30
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: An active enforcement action remains past its expected native expiry.
+      - alert: SentinelFlowEnforcementEarlyMissing
+        expr: sentinelflow_control_enforcement_early_missing > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: Executor read-back found an active action missing before expected expiry.
+      - alert: SentinelFlowAuditRecoveryStalled
+        expr: (sum(sentinelflow_control_audit_recovery_jobs{state=~"pending|retry|leased"}) > 0 and sentinelflow_control_audit_latest_age_seconds > 600) or sum(sentinelflow_control_dead_letters_unresolved{kind="audit_recovery"}) > 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: Required audit recovery work is stale or dead-lettered.
+      - alert: SentinelFlowSSELedgerStale
+        expr: sentinelflow_control_sse_watermark_lag > 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: The SSE replay ledger is behind its committed watermark.
+      - alert: SentinelFlowSSEClientObservabilityUnavailable
+        expr: sentinelflow_control_sse_clients_observable == 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: Authoritative SSE client cardinality is unavailable in the current runtime.
+      - alert: SentinelFlowSSEClientCapacity
+        expr: sentinelflow_control_sse_clients >= 230
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: Active SSE clients are at or above 230 of the bounded 256-client lease capacity.

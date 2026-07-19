@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinelflow.example/contracts/events/auth_event_v1.schema.json",
+  "title": "SentinelFlow authenticated application event v1",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "auth-event-v1"
+    },
+    "event_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "gateway_request_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "trace_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "idempotency_key": {
+      "$ref": "#/$defs/digest"
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "source_ip": {
+      "type": "string",
+      "format": "ipv4",
+      "minLength": 7,
+      "maxLength": 15
+    },
+    "service_label": {
+      "$ref": "#/$defs/label"
+    },
+    "route_label": {
+      "$ref": "#/$defs/label"
+    },
+    "account_hash": {
+      "type": "string",
+      "pattern": "^hmac-sha256:[0-9a-f]{64}$"
+    },
+    "outcome": {
+      "enum": [
+        "failed",
+        "succeeded"
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "event_id",
+    "gateway_request_id",
+    "trace_id",
+    "idempotency_key",
+    "occurred_at",
+    "source_ip",
+    "service_label",
+    "route_label",
+    "account_hash",
+    "outcome"
+  ],
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "label": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+    }
+  }
+}

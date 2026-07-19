@@ -1,0 +1,165 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinelflow.local/contracts/tuning/threshold_report_v1.schema.json",
+  "title": "SentinelFlow offline threshold comparison report v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "report_id",
+    "author",
+    "evaluated_at",
+    "dataset_id",
+    "dataset_raw_digest",
+    "dataset_canonical_digest",
+    "active_runtime_configuration_version",
+    "active_runtime_configuration_digest",
+    "prior_active_profile",
+    "results",
+    "recommendation",
+    "selected_profile_id",
+    "activation_performed",
+    "report_digest"
+  ],
+  "properties": {
+    "schema_version": { "const": "threshold-comparison-report-v1" },
+    "report_id": { "$ref": "#/$defs/digest" },
+    "author": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$" },
+    "evaluated_at": { "$ref": "#/$defs/timestamp" },
+    "dataset_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$" },
+    "dataset_raw_digest": { "$ref": "#/$defs/digest" },
+    "dataset_canonical_digest": { "$ref": "#/$defs/digest" },
+    "active_runtime_configuration_version": { "const": "detectors-v1" },
+    "active_runtime_configuration_digest": { "$ref": "#/$defs/digest" },
+    "prior_active_profile": { "$ref": "#/$defs/profile" },
+    "results": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": { "$ref": "#/$defs/profile_result" }
+    },
+    "recommendation": { "const": "retain_frozen_baseline" },
+    "selected_profile_id": { "const": "baseline-v1" },
+    "activation_performed": { "const": false },
+    "report_digest": { "$ref": "#/$defs/digest" }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?Z$"
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "profile_id",
+        "path_scan_distinct_threshold",
+        "request_burst_event_threshold",
+        "login_bruteforce_event_threshold",
+        "credential_stuffing_event_threshold",
+        "credential_stuffing_account_threshold",
+        "profile_digest"
+      ],
+      "properties": {
+        "schema_version": { "const": "threshold-profile-v1" },
+        "profile_id": { "enum": ["baseline-v1", "conservative-v1", "sensitive-v1"] },
+        "path_scan_distinct_threshold": { "type": "integer", "minimum": 1, "maximum": 8 },
+        "request_burst_event_threshold": { "type": "integer", "minimum": 1, "maximum": 10000 },
+        "login_bruteforce_event_threshold": { "type": "integer", "minimum": 1, "maximum": 1000 },
+        "credential_stuffing_event_threshold": { "type": "integer", "minimum": 1, "maximum": 10000 },
+        "credential_stuffing_account_threshold": { "type": "integer", "minimum": 1, "maximum": 1000 },
+        "profile_digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "matrix": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["true_positive", "true_negative", "false_positive", "false_negative", "incomplete"],
+      "properties": {
+        "true_positive": { "type": "integer", "minimum": 0, "maximum": 1000 },
+        "true_negative": { "type": "integer", "minimum": 0, "maximum": 1000 },
+        "false_positive": { "type": "integer", "minimum": 0, "maximum": 1000 },
+        "false_negative": { "type": "integer", "minimum": 0, "maximum": 1000 },
+        "incomplete": { "type": "integer", "minimum": 0, "maximum": 1000 }
+      }
+    },
+    "case_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "rule_id",
+        "expected_attack",
+        "evidence_state",
+        "decision",
+        "correct",
+        "explanation_code",
+        "false_positive_factors"
+      ],
+      "properties": {
+        "case_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$" },
+        "rule_id": {
+          "enum": ["path_scan.v1", "request_burst.v1", "login_bruteforce.v1", "credential_stuffing.v1"]
+        },
+        "expected_attack": { "type": "boolean" },
+        "evidence_state": { "enum": ["complete", "incomplete", "untrusted", "unverified"] },
+        "decision": { "enum": ["matched", "no_match", "incomplete"] },
+        "correct": { "type": "boolean" },
+        "explanation_code": {
+          "enum": [
+            "evidence_guard_fail_closed",
+            "expected_attack_detected",
+            "expected_benign_not_detected",
+            "candidate_threshold_false_positive",
+            "candidate_threshold_false_negative"
+          ]
+        },
+        "false_positive_factors": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 5,
+          "items": {
+            "enum": ["none", "authorized_scanner", "load_test", "shared_nat", "credential_rotation"]
+          }
+        }
+      }
+    },
+    "profile_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile",
+        "matrix",
+        "guard_failure_count",
+        "activation_eligible",
+        "activation_reason",
+        "cases"
+      ],
+      "properties": {
+        "profile": { "$ref": "#/$defs/profile" },
+        "matrix": { "$ref": "#/$defs/matrix" },
+        "guard_failure_count": { "type": "integer", "minimum": 0, "maximum": 1000 },
+        "activation_eligible": { "type": "boolean" },
+        "activation_reason": {
+          "enum": [
+            "evidence_guard_regression",
+            "attack_detection_regression",
+            "false_positive_regression",
+            "normal_attack_regression_clear"
+          ]
+        },
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1000,
+          "items": { "$ref": "#/$defs/case_result" }
+        }
+      }
+    }
+  }
+}

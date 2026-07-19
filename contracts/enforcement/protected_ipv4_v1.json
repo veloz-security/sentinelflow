@@ -1,0 +1,297 @@
+{
+  "schema_version": "protected-ipv4-v1",
+  "registry_source": "IANA IPv4 Special-Purpose Address Space plus RFC 1112 multicast",
+  "authoritative_registry_url": "https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml",
+  "registry_last_updated": "2025-10-09",
+  "policy_version": "sentinelflow-protected-ipv4-policy-v1",
+  "configured_additions_only": true,
+  "entries": [
+    {
+      "entry_id": "this_network",
+      "cidrs": [
+        "0.0.0.0/8"
+      ],
+      "name": "This network",
+      "reference": "RFC791 section 3.2",
+      "source": "iana-special-purpose",
+      "production_protected": true,
+      "demo_exception_allowed": false
+    },
+    {
+      "entry_id": "this_host",
+      "cidrs": [
+        "0.0.0.0/32"
+      ],
+      "name": "This host on this network",
+      "reference": "RFC1122 section 3.2.1.3",
+      "source": "iana-special-purpose",
+      "production_protected": true,
+      "demo_exception_allowed": false
+    },
+    {
+      "entry_id": "private_10",
+      "cidrs": [
+        "10.0.0.0/8"
+      ],
+      "name": "Private-Use",
+      "reference": "RFC1918",
+      "source": "iana-special-purpose",
+      "production_protected": true,
+      "demo_exception_allowed": false
+    },
+    {
+      "entry_id": "shared_address_space",
+      "cidrs": [
+        "100.64.0.0/10"
+      ],
+      "name": "Shared Address Space",
+      "reference": "RFC6598",
+      "source": "iana-special-purpose",
+      "production_protected": true,
+      "demo_exception_allowed": false
+    },
+    {
+      "entry_id": "loopback",
+      "cidrs": [
+        "127.0.0.0/8"
+      ],
+      "name": "Loopback",
+      "reference": "RFC1122 section 3.2.1.3",
+      "source": "iana-special-purpose",
+      "production_protected": true,
+      "demo_exception_allowed": false
+    },
+    {
+      "entry_id": "link_local",
+      "cidrs": [
+        "169.254.0.0/16"
+      ],
+      "name": "Link Local",
+      "reference": "RFC3927",
+      "source": "iana-special-purpose",
+      "production_protected": true,
+      "demo_exception_allowed": false
+    },
+    {
+      "entry_id": "private_172",
+      "cidrs": [
+        "172.16.0.0/12"
+      ],
+      "name": "Private-Use",
+      "reference": "RFC1918",
+      "source": "iana-special-purpose",
+      "production_protected": true,
+      "demo_exception_allowed": false
+    },
+    {
+      "entry_id": "ietf_protocol_assignments",
+      "cidrs": [
+        "192.0.0.0/24"
+      ],
+      "name": "IETF Protocol Assignments",
+      "reference": "RFC6890 section 2.1",
+      "source": "iana-special-purpose",
+      "production_protected": true,
+      "demo_exception_allowed": false
+    },
+    {
+      "entry_id": "ipv4_service_continuity",
+      "cidrs": [
+        "192.0.0.0/29"
+      ],
+      "name": "IPv4 Service Continuity Prefix",
+      "reference": "RFC7335",
+      "source": "iana-special-purpose",
+      "production_protected": true,
+      "demo_exception_allowed": false
+    },
+    {
+      "entry_id": "ipv4_dummy",
+      "cidrs": [
+        "192.0.0.8/32"
+      ],
+      "name": "IPv4 dummy address",
+      "reference": "RFC7600",
+      "source": "iana-special-purpose",
+      "production_protected": true,
+      "demo_exception_allowed": false
+    },
+    {
+      "entry_id": "pcp_anycast",
+      "cidrs": [
+        "192.0.0.9/32"
+      ],
+      "name": "Port Control Protocol Anycast",
+      "reference": "RFC7723",
+      "source": "iana-special-purpose",
+      "production_protected": true,
+      "demo_exception_allowed": false
+    },
+    {
+      "entry_id": "turn_anycast",
+      "cidrs": [
+        "192.0.0.10/32"
+      ],
+      "name": "Traversal Using Relays around NAT Anycast",
+      "reference": "RFC8155",
+      "source": "iana-special-purpose",
+      "production_protected": true,
+      "demo_exception_allowed": false
+    },
+    {
+      "entry_id": "nat64_discovery",
+      "cidrs": [
+        "192.0.0.170/32",
+        "192.0.0.171/32"
+      ],
+      "name": "NAT64/DNS64 Discovery",
+      "reference": "RFC8880",
+      "source": "iana-special-purpose",
+      "production_protected": true,
+      "demo_exception_allowed": false
+    },
+    {
+      "entry_id": "test_net_1",
+      "cidrs": [
+        "192.0.2.0/24"
+      ],
+      "name": "Documentation TEST-NET-1",
+      "reference": "RFC5737",
+      "source": "iana-special-purpose",
+      "production_protected": true,
+      "demo_exception_allowed": true
+    },
+    {
+      "entry_id": "as112_v4",
+      "cidrs": [
+        "192.31.196.0/24"
+      ],
+      "name": "AS112-v4",
+      "reference": "RFC7535",
+      "source": "iana-special-purpose",
+      "production_protected": true,
+      "demo_exception_allowed": false
+    },
+    {
+      "entry_id": "amt",
+      "cidrs": [
+        "192.52.193.0/24"
+      ],
+      "name": "Automatic Multicast Tunneling",
+      "reference": "RFC7450",
+      "source": "iana-special-purpose",
+      "production_protected": true,
+      "demo_exception_allowed": false
+    },
+    {
+      "entry_id": "deprecated_6to4_relay",
+      "cidrs": [
+        "192.88.99.0/24"
+      ],
+      "name": "Deprecated 6to4 Relay Anycast",
+      "reference": "RFC7526",
+      "source": "iana-special-purpose",
+      "production_protected": true,
+      "demo_exception_allowed": false
+    },
+    {
+      "entry_id": "six_a_four_relay",
+      "cidrs": [
+        "192.88.99.2/32"
+      ],
+      "name": "6a44-relay anycast address",
+      "reference": "RFC6751",
+      "source": "iana-special-purpose",
+      "production_protected": true,
+      "demo_exception_allowed": false
+    },
+    {
+      "entry_id": "private_192",
+      "cidrs": [
+        "192.168.0.0/16"
+      ],
+      "name": "Private-Use",
+      "reference": "RFC1918",
+      "source": "iana-special-purpose",
+      "production_protected": true,
+      "demo_exception_allowed": false
+    },
+    {
+      "entry_id": "direct_delegation_as112",
+      "cidrs": [
+        "192.175.48.0/24"
+      ],
+      "name": "Direct Delegation AS112 Service",
+      "reference": "RFC7534",
+      "source": "iana-special-purpose",
+      "production_protected": true,
+      "demo_exception_allowed": false
+    },
+    {
+      "entry_id": "benchmarking",
+      "cidrs": [
+        "198.18.0.0/15"
+      ],
+      "name": "Benchmarking",
+      "reference": "RFC2544",
+      "source": "iana-special-purpose",
+      "production_protected": true,
+      "demo_exception_allowed": false
+    },
+    {
+      "entry_id": "test_net_2",
+      "cidrs": [
+        "198.51.100.0/24"
+      ],
+      "name": "Documentation TEST-NET-2",
+      "reference": "RFC5737",
+      "source": "iana-special-purpose",
+      "production_protected": true,
+      "demo_exception_allowed": true
+    },
+    {
+      "entry_id": "test_net_3",
+      "cidrs": [
+        "203.0.113.0/24"
+      ],
+      "name": "Documentation TEST-NET-3",
+      "reference": "RFC5737",
+      "source": "iana-special-purpose",
+      "production_protected": true,
+      "demo_exception_allowed": true
+    },
+    {
+      "entry_id": "multicast",
+      "cidrs": [
+        "224.0.0.0/4"
+      ],
+      "name": "IPv4 Multicast",
+      "reference": "RFC1112 section 4",
+      "source": "rfc1112-multicast",
+      "production_protected": true,
+      "demo_exception_allowed": false
+    },
+    {
+      "entry_id": "reserved",
+      "cidrs": [
+        "240.0.0.0/4"
+      ],
+      "name": "Reserved",
+      "reference": "RFC1112 section 4",
+      "source": "iana-special-purpose",
+      "production_protected": true,
+      "demo_exception_allowed": false
+    },
+    {
+      "entry_id": "limited_broadcast",
+      "cidrs": [
+        "255.255.255.255/32"
+      ],
+      "name": "Limited Broadcast",
+      "reference": "RFC8190",
+      "source": "iana-special-purpose",
+      "production_protected": true,
+      "demo_exception_allowed": false
+    }
+  ]
+}

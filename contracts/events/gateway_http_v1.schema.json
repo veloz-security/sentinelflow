@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinelflow.example/contracts/events/gateway_http_v1.schema.json",
+  "title": "SentinelFlow minimized Gateway HTTP event v1",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "gateway-http-v1"
+    },
+    "event_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "request_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "trace_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "idempotency_key": {
+      "$ref": "#/$defs/digest"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "source_ip": {
+      "type": "string",
+      "format": "ipv4",
+      "minLength": 7,
+      "maxLength": 15
+    },
+    "method": {
+      "type": "string",
+      "pattern": "^[A-Z]{1,16}$"
+    },
+    "protocol": {
+      "const": "HTTP/1.1"
+    },
+    "route_label": {
+      "$ref": "#/$defs/label"
+    },
+    "path_catalog_version": {
+      "const": "path-catalog-v1"
+    },
+    "suspicious_path_id": {
+      "enum": [
+        "none",
+        "admin_console",
+        "env_file",
+        "git_config",
+        "wp_admin",
+        "phpmyadmin",
+        "server_status",
+        "actuator_env",
+        "backup_archive"
+      ]
+    },
+    "host": {
+      "type": "string",
+      "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?(?::[1-9][0-9]{0,4})?$",
+      "maxLength": 255
+    },
+    "service_label": {
+      "$ref": "#/$defs/label"
+    },
+    "status_code": {
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 599
+    },
+    "request_bytes": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10485760
+    },
+    "response_bytes": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "latency_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 30000
+    }
+  },
+  "required": [
+    "schema_version",
+    "event_id",
+    "request_id",
+    "trace_id",
+    "idempotency_key",
+    "started_at",
+    "completed_at",
+    "source_ip",
+    "method",
+    "protocol",
+    "route_label",
+    "path_catalog_version",
+    "suspicious_path_id",
+    "host",
+    "service_label",
+    "status_code",
+    "request_bytes",
+    "response_bytes",
+    "latency_ms"
+  ],
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "label": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+    }
+  }
+}

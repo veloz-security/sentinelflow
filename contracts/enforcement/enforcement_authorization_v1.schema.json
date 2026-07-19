@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinelflow.example/contracts/enforcement/enforcement_authorization_v1.schema.json",
+  "title": "SentinelFlow exact-artifact authorization v1",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "enforcement-authorization-v1"
+    },
+    "authorization_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "authorization_kind": {
+      "enum": [
+        "add",
+        "revoke"
+      ]
+    },
+    "action_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "policy_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "policy_version": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 2147483647
+    },
+    "decision": {
+      "enum": [
+        "approve",
+        "revoke"
+      ]
+    },
+    "target_ipv4": {
+      "type": "string",
+      "format": "ipv4",
+      "minLength": 7,
+      "maxLength": 15
+    },
+    "policy_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "generated_artifact_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "canonical_artifact_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "original_add_digest": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/digest"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "evidence_snapshot_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "validation_snapshot_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "actor_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"
+    },
+    "hil_reason_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "decision_nonce_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "idempotency_key_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "decided_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "valid_until": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "schema_version",
+    "authorization_id",
+    "authorization_kind",
+    "action_id",
+    "policy_id",
+    "policy_version",
+    "decision",
+    "target_ipv4",
+    "policy_digest",
+    "generated_artifact_digest",
+    "canonical_artifact_digest",
+    "original_add_digest",
+    "evidence_snapshot_digest",
+    "validation_snapshot_digest",
+    "actor_id",
+    "hil_reason_digest",
+    "decision_nonce_digest",
+    "idempotency_key_digest",
+    "decided_at",
+    "valid_until"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "authorization_kind": {
+            "const": "add"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "decision": {
+            "const": "approve"
+          },
+          "original_add_digest": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "authorization_kind": {
+            "const": "revoke"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "decision": {
+            "const": "revoke"
+          },
+          "original_add_digest": {
+            "$ref": "#/$defs/digest"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    }
+  }
+}

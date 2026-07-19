@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinelflow.example/contracts/enforcement/demo_history_manifest_v1.schema.json",
+  "title": "SentinelFlow synthetic demo-history manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "demo-history-v1"
+    },
+    "manifest_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "profile": {
+      "const": "isolated-demo"
+    },
+    "clock_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "dataset_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "dataset_schema_version": {
+      "const": "demo-history-dataset-v1"
+    },
+    "dataset_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "dataset_record_count": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100000
+    },
+    "import_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "coverage_start": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "coverage_end": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "path_catalog_version": {
+      "const": "path-catalog-v1"
+    },
+    "source_health_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "issued_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "schema_version",
+    "manifest_id",
+    "profile",
+    "clock_at",
+    "dataset_id",
+    "dataset_schema_version",
+    "dataset_digest",
+    "dataset_record_count",
+    "import_id",
+    "coverage_start",
+    "coverage_end",
+    "path_catalog_version",
+    "source_health_digest",
+    "issued_at"
+  ],
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    }
+  }
+}

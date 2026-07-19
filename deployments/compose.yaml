@@ -1,0 +1,884 @@
+name: sentinelflow
+
+x-backend: &backend
+  image: sentinelflow/backend:demo
+  build:
+    context: ..
+    dockerfile: deployments/Dockerfile.backend
+    args:
+      VERSION: local-demo
+
+x-read-only-service: &read-only-service
+  read_only: true
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+  init: true
+  pids_limit: 256
+  tmpfs:
+    - /tmp:rw,noexec,nosuid,nodev,size=16m,mode=1777
+
+services:
+  postgres:
+    image: sentinelflow/postgres:demo
+    build:
+      context: ..
+      dockerfile: deployments/Dockerfile.postgres
+    user: "70:70"
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256 --auth-local=scram-sha-256
+    command:
+      - postgres
+      - -c
+      - hba_file=/etc/postgresql/sentinelflow-pg_hba.conf
+      - -c
+      - listen_addresses=172.32.0.2
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -q -h 172.32.0.2 -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+      start_period: 5s
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    pids_limit: 256
+    shm_size: 128m
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=8m,mode=1777,uid=70,gid=70
+      - /var/run/postgresql:rw,noexec,nosuid,nodev,size=4m,mode=0750,uid=70,gid=70
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres/pg_hba.conf:/etc/postgresql/sentinelflow-pg_hba.conf:ro
+    networks:
+      control:
+        ipv4_address: 172.32.0.2
+
+  migrate:
+    image: sentinelflow/postgres:demo
+    restart: "no"
+    user: "70:70"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      secret-init:
+        condition: service_completed_successfully
+    environment:
+      SENTINELFLOW_ENV: demo
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      DATABASE_API_PASSWORD: ${DATABASE_API_PASSWORD}
+      DATABASE_WORKER_PASSWORD: ${DATABASE_WORKER_PASSWORD}
+      DATABASE_READ_PASSWORD: ${DATABASE_READ_PASSWORD}
+      DATABASE_DISPATCHER_PASSWORD: ${DATABASE_DISPATCHER_PASSWORD}
+      DATABASE_RETENTION_PASSWORD: ${DATABASE_RETENTION_PASSWORD}
+      DATABASE_LIFECYCLE_PASSWORD: ${DATABASE_LIFECYCLE_PASSWORD}
+      DATABASE_METRICS_PASSWORD: ${DATABASE_METRICS_PASSWORD}
+      DATABASE_DEMO_IMPORTER_PASSWORD: ${DATABASE_DEMO_IMPORTER_PASSWORD}
+    command: ["/opt/sentinelflow/init.sh"]
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 64
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=8m,mode=1777
+    volumes:
+      - ./postgres/init.sh:/opt/sentinelflow/init.sh:ro
+      - ../db/migrations:/migrations:ro
+      - demo-history-capability-receipts:/run/sentinelflow-demo-history-capability-receipts:ro
+    networks:
+      control:
+        ipv4_address: 172.32.0.3
+
+  history-importer:
+    <<: [*backend, *read-only-service]
+    command: ["/usr/local/bin/historyimporter"]
+    restart: "no"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      SENTINELFLOW_ENV: demo
+      DATABASE_DEMO_IMPORTER_URL: ${DATABASE_DEMO_IMPORTER_URL}
+      DEMO_HISTORY_FIXTURE_DATASET: ${DEMO_HISTORY_FIXTURE_DATASET}
+      DEMO_HISTORY_SIGNED_ENVELOPE_FILE: ${DEMO_HISTORY_SIGNED_ENVELOPE_FILE}
+      DEMO_HISTORY_PUBLIC_KEY_B64URL: ${DEMO_HISTORY_PUBLIC_KEY_B64URL}
+      DEMO_HISTORY_RUN_SCOPE: ${DEMO_HISTORY_RUN_SCOPE}
+      DEMO_HISTORY_IMPORT_ID: ${DEMO_HISTORY_IMPORT_ID}
+      DEMO_HISTORY_CLOCK_AT: ${DEMO_HISTORY_CLOCK_AT}
+      DEMO_HISTORY_IMPACT_SOURCE_HEALTH_DIGEST: ${DEMO_HISTORY_IMPACT_SOURCE_HEALTH_DIGEST}
+    volumes:
+      - ${DEMO_HISTORY_SOURCE:-../data/demo-history}:/run/sentinelflow-demo-history:ro
+    networks:
+      control:
+        ipv4_address: 172.32.0.8
+
+  secret-init:
+    <<: [*backend, *read-only-service]
+    user: "0:0"
+    network_mode: none
+    restart: "no"
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+    command:
+      - /bin/sh
+      - -eu
+      - -c
+      - |
+        test -f /source/dispatcher-capability-private.pem
+        test -f /source/dispatcher-capability-public.pem
+        test -f /source/executor-result-private.pem
+        test -f /source/executor-result-public.pem
+        test -f /source/demo-history-analysis-activation.capability
+        test -f /source/demo-history-validation-activation.capability
+        test ! -L /source/demo-history-analysis-activation.capability
+        test ! -L /source/demo-history-validation-activation.capability
+        test "$$(stat -c '%a' /source/demo-history-analysis-activation.capability)" = '400'
+        test "$$(stat -c '%a' /source/demo-history-validation-activation.capability)" = '400'
+        test "$$(wc -c </source/demo-history-analysis-activation.capability)" -eq 32
+        test "$$(wc -c </source/demo-history-validation-activation.capability)" -eq 32
+        activation_comparison=0
+        cmp -s /source/demo-history-analysis-activation.capability /source/demo-history-validation-activation.capability || activation_comparison=$$?
+        test "$$activation_comparison" -eq 1
+        chown 65532:65532 /volumes/gateway-state /volumes/auth-state
+        chmod 0700 /volumes/gateway-state /volumes/auth-state
+        chown 0:65532 /volumes/executor-state /volumes/executor-socket /volumes/validator-socket /volumes/readiness
+        chmod 0750 /volumes/executor-state /volumes/executor-socket /volumes/validator-socket /volumes/readiness
+        chown 65532:65532 /volumes/dispatcher-secrets
+        chmod 0700 /volumes/dispatcher-secrets
+        chown 0:65532 /volumes/executor-secrets
+        chmod 0700 /volumes/executor-secrets
+        chown 0:70 /volumes/demo-history-capability-receipts
+        chmod 0750 /volumes/demo-history-capability-receipts
+        chown 65532:65532 /volumes/demo-history-analysis-activation /volumes/demo-history-validation-activation
+        chmod 0700 /volumes/demo-history-analysis-activation /volumes/demo-history-validation-activation
+        install -o 65532 -g 65532 -m 0600 /source/dispatcher-capability-private.pem /volumes/dispatcher-secrets/dispatcher-capability-private.pem
+        install -o 65532 -g 65532 -m 0644 /source/executor-result-public.pem /volumes/dispatcher-secrets/executor-result-public.pem
+        install -o 0 -g 65532 -m 0644 /source/dispatcher-capability-public.pem /volumes/executor-secrets/dispatcher-capability-public.pem
+        install -o 0 -g 65532 -m 0600 /source/executor-result-private.pem /volumes/executor-secrets/executor-result-private.pem
+        analysis_digest="$$(sha256sum /source/demo-history-analysis-activation.capability | cut -d ' ' -f 1)"
+        validation_digest="$$(sha256sum /source/demo-history-validation-activation.capability | cut -d ' ' -f 1)"
+        case "$$analysis_digest" in *[!0-9a-f]*|'') exit 1 ;; esac
+        case "$$validation_digest" in *[!0-9a-f]*|'') exit 1 ;; esac
+        test "$${#analysis_digest}" -eq 64
+        test "$${#validation_digest}" -eq 64
+        test "$$analysis_digest" != "$$validation_digest"
+        find /volumes/demo-history-capability-receipts -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
+        printf 'sha256:%s\n' "$$analysis_digest" >/volumes/demo-history-capability-receipts/analysis.sha256
+        printf 'sha256:%s\n' "$$validation_digest" >/volumes/demo-history-capability-receipts/validation.sha256
+        chown 0:70 /volumes/demo-history-capability-receipts/analysis.sha256 /volumes/demo-history-capability-receipts/validation.sha256
+        chmod 0440 /volumes/demo-history-capability-receipts/analysis.sha256 /volumes/demo-history-capability-receipts/validation.sha256
+        test "$$(stat -c '%u:%g:%a:%s' /volumes/demo-history-capability-receipts/analysis.sha256)" = '0:70:440:72'
+        test "$$(stat -c '%u:%g:%a:%s' /volumes/demo-history-capability-receipts/validation.sha256)" = '0:70:440:72'
+        test "$$(find /volumes/demo-history-capability-receipts -mindepth 1 -maxdepth 1 | wc -l)" -eq 2
+        install -o 65532 -g 65532 -m 0400 /source/demo-history-analysis-activation.capability /volumes/demo-history-analysis-activation/activation-capability
+        install -o 65532 -g 65532 -m 0400 /source/demo-history-validation-activation.capability /volumes/demo-history-validation-activation/activation-capability
+        test "$$(stat -c '%u:%g:%a:%s' /volumes/demo-history-analysis-activation/activation-capability)" = '65532:65532:400:32'
+        test "$$(stat -c '%u:%g:%a:%s' /volumes/demo-history-validation-activation/activation-capability)" = '65532:65532:400:32'
+        cmp -s /source/demo-history-analysis-activation.capability /volumes/demo-history-analysis-activation/activation-capability
+        cmp -s /source/demo-history-validation-activation.capability /volumes/demo-history-validation-activation/activation-capability
+    volumes:
+      - ${DEMO_SECRETS_SOURCE:-../secrets/demo}:/source:ro
+      - gateway-state:/volumes/gateway-state
+      - auth-state:/volumes/auth-state
+      - executor-state:/volumes/executor-state
+      - executor-socket:/volumes/executor-socket
+      - validator-socket:/volumes/validator-socket
+      - executor-readiness:/volumes/readiness
+      - dispatcher-secrets:/volumes/dispatcher-secrets
+      - executor-secrets:/volumes/executor-secrets
+      - demo-history-capability-receipts:/volumes/demo-history-capability-receipts
+      - demo-history-analysis-activation:/volumes/demo-history-analysis-activation
+      - demo-history-validation-activation:/volumes/demo-history-validation-activation
+
+  demo-activation-handoff:
+    image: sentinelflow/postgres:demo
+    restart: "no"
+    user: "70:70"
+    depends_on:
+      history-importer:
+        condition: service_completed_successfully
+    environment:
+      SENTINELFLOW_ENV: demo
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      DATABASE_DEMO_ACTIVATOR_PASSWORD: ${DATABASE_DEMO_ACTIVATOR_PASSWORD}
+    command: ["/opt/sentinelflow/demo-activation-handoff.sh"]
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 64
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=8m,mode=1777
+    volumes:
+      - ./postgres/demo-activation-handoff.sh:/opt/sentinelflow/demo-activation-handoff.sh:ro
+      - demo-history-capability-receipts:/run/sentinelflow-demo-history-capability-receipts:ro
+    networks:
+      control:
+        ipv4_address: 172.32.0.15
+
+  demo-activator:
+    <<: [*backend, *read-only-service]
+    command: ["/usr/local/bin/demoactivator"]
+    restart: "no"
+    depends_on:
+      demo-activation-handoff:
+        condition: service_completed_successfully
+    environment:
+      SENTINELFLOW_ENV: demo
+      DATABASE_DEMO_ACTIVATOR_URL: ${DATABASE_DEMO_ACTIVATOR_URL}
+      DEMO_HISTORY_SIGNED_ENVELOPE_FILE: ${DEMO_HISTORY_SIGNED_ENVELOPE_FILE}
+      DEMO_HISTORY_PUBLIC_KEY_B64URL: ${DEMO_HISTORY_PUBLIC_KEY_B64URL}
+      DEMO_HISTORY_RUN_SCOPE: ${DEMO_HISTORY_RUN_SCOPE}
+      DEMO_HISTORY_IMPORT_ID: ${DEMO_HISTORY_IMPORT_ID}
+      DEMO_HISTORY_CLOCK_AT: ${DEMO_HISTORY_CLOCK_AT}
+      DEMO_HISTORY_IMPACT_SOURCE_HEALTH_DIGEST: ${DEMO_HISTORY_IMPACT_SOURCE_HEALTH_DIGEST}
+      DEMO_HISTORY_ANALYSIS_ACTIVATION_SECRET_FILE: ${DEMO_HISTORY_ANALYSIS_ACTIVATION_SECRET_FILE}
+      DEMO_HISTORY_VALIDATION_ACTIVATION_SECRET_FILE: ${DEMO_HISTORY_VALIDATION_ACTIVATION_SECRET_FILE}
+    volumes:
+      - ${DEMO_HISTORY_SOURCE:-../data/demo-history}:/run/sentinelflow-demo-history:ro
+      - demo-history-analysis-activation:/run/secrets/sentinelflow-demo-history-analysis:ro
+      - demo-history-validation-activation:/run/secrets/sentinelflow-demo-history-validation:ro
+    networks:
+      control:
+        ipv4_address: 172.32.0.14
+
+  api:
+    <<: [*backend, *read-only-service]
+    command: ["/usr/local/bin/api"]
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      SENTINELFLOW_ENV: demo
+      INTERNAL_API_INGEST_LISTEN_ADDR: 172.31.0.10:8082
+      API_MANAGEMENT_LISTEN_ADDR: 172.34.0.10:8083
+      API_MANAGEMENT_PUBLISHED_HOST: 127.0.0.1
+      INTERNAL_GATEWAY_INGEST_URL: http://api:8082/internal/v1/gateway-events
+      INTERNAL_AUTH_INGEST_URL: http://api:8082/internal/v1/auth-events
+      GATEWAY_EVENT_SENDER_ID: gateway-01
+      GATEWAY_EVENT_HMAC_KEY_ID: ${GATEWAY_EVENT_HMAC_KEY_ID}
+      GATEWAY_EVENT_HMAC_KEY: ${GATEWAY_EVENT_HMAC_KEY}
+      GATEWAY_EXPECTED_SOURCE_BINDING_ID: ${GATEWAY_EXPECTED_SOURCE_BINDING_ID}
+      GATEWAY_SOURCE_CONFIG_SHA256: ${GATEWAY_SOURCE_CONFIG_SHA256}
+      AUTH_EVENT_SENDER_ID: demo-app
+      AUTH_EVENT_SERVICE_LABEL: demo-app
+      AUTH_EVENT_HMAC_KEY_ID: ${AUTH_EVENT_HMAC_KEY_ID}
+      AUTH_EVENT_HMAC_KEY: ${AUTH_EVENT_HMAC_KEY}
+      AUTH_EXPECTED_SOURCE_BINDING_ID: ${AUTH_EXPECTED_SOURCE_BINDING_ID}
+      AUTH_SOURCE_CONFIG_SHA256: ${AUTH_SOURCE_CONFIG_SHA256}
+      SENTINELFLOW_SERVICE_LABEL: demo-app
+      DATABASE_API_URL: ${DATABASE_API_URL}
+      ADMIN_USERNAME: ${ADMIN_USERNAME}
+      ADMIN_PASSWORD_ARGON2ID_HASH: ${ADMIN_PASSWORD_ARGON2ID_HASH}
+      SESSION_HMAC_KEY: ${SESSION_HMAC_KEY}
+      ADMIN_ALLOWED_ORIGINS: ${ADMIN_ALLOWED_ORIGINS:-http://localhost:4173}
+      ADMIN_COOKIE_TRANSPORT: explicit-local-test
+      ADMIN_SESSION_COOKIE_NAME: sentinelflow_admin
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://172.34.0.10:8083/health/ready"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+      start_period: 5s
+    ports:
+      - 127.0.0.1:${API_MANAGEMENT_PUBLISHED_PORT:-8083}:8083
+    networks:
+      ingest:
+        ipv4_address: 172.31.0.10
+      control:
+        ipv4_address: 172.32.0.10
+      management:
+        ipv4_address: 172.34.0.10
+
+  demo-app:
+    <<: [*backend, *read-only-service]
+    command: ["/usr/local/bin/demoapp"]
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+      secret-init:
+        condition: service_completed_successfully
+    environment:
+      SENTINELFLOW_ENV: demo
+      DEMO_ORIGIN_HTTP_LISTEN_ADDR: 172.30.0.10:8081
+      DEMO_GATEWAY_PEER_CIDRS: 172.30.0.2/32
+      INTERNAL_AUTH_INGEST_URL: http://api:8082/internal/v1/auth-events
+      AUTH_EVENT_SENDER_ID: demo-app
+      AUTH_EVENT_HMAC_KEY: ${AUTH_EVENT_HMAC_KEY}
+      AUTH_ACCOUNT_HASH_KEY: ${AUTH_ACCOUNT_HASH_KEY}
+      AUTH_EVENT_SENDER_CHECKPOINT_FILE: /var/lib/sentinelflow-auth-adapter/sender-state.json
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z -w 1 172.30.0.10 8081"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+      start_period: 5s
+    volumes:
+      - auth-state:/var/lib/sentinelflow-auth-adapter
+    networks:
+      origin:
+        ipv4_address: 172.30.0.10
+        aliases:
+          - demo-origin
+      ingest:
+        ipv4_address: 172.31.0.3
+
+  gateway:
+    <<: [*backend, *read-only-service]
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+      demo-app:
+        condition: service_healthy
+      secret-init:
+        condition: service_completed_successfully
+    command:
+      - /bin/sh
+      - -eu
+      - -c
+      - |
+        fresh_executor() {
+          test -f /run/sentinelflow-ready/executor-heartbeat || return 1
+          now="$$(date +%s)"
+          modified="$$(stat -c %Y /run/sentinelflow-ready/executor-heartbeat 2>/dev/null || echo 0)"
+          test "$$((now - modified))" -le 3
+        }
+        attempts=0
+        until fresh_executor; do
+          attempts="$$((attempts + 1))"
+          test "$$attempts" -lt 300 || exit 1
+          sleep 0.1
+        done
+        exec /usr/local/bin/gateway
+    environment:
+      SENTINELFLOW_ENV: demo
+      SENTINELFLOW_SERVICE_LABEL: demo-app
+      GATEWAY_LISTEN_ADDR: 203.0.113.10:8080
+      GATEWAY_METRICS_LISTEN_ADDR: 172.29.0.2:9090
+      GATEWAY_PUBLIC_HOST: ${GATEWAY_PUBLIC_HOST:-localhost:8080}
+      GATEWAY_UPSTREAM_URL: http://demo-origin:8081
+      GATEWAY_UPSTREAM_HOST: demo-origin
+      GATEWAY_ORIGIN_CIDRS: 172.30.0.0/24
+      INTERNAL_GATEWAY_INGEST_URL: http://api:8082/internal/v1/gateway-events
+      GATEWAY_EVENT_SENDER_ID: gateway-01
+      GATEWAY_EVENT_HMAC_KEY: ${GATEWAY_EVENT_HMAC_KEY}
+      GATEWAY_SENDER_CHECKPOINT_FILE: /var/lib/sentinelflow-gateway/sender-state.json
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          wget -q -O /dev/null http://203.0.113.10:8080/health/ready &&
+          wget -q -O /dev/null http://172.29.0.2:9090/metrics
+      interval: 2s
+      timeout: 2s
+      retries: 30
+      start_period: 5s
+    ports:
+      - 127.0.0.1:${GATEWAY_PUBLISHED_PORT:-8080}:8080
+    volumes:
+      - gateway-state:/var/lib/sentinelflow-gateway
+      - executor-readiness:/run/sentinelflow-ready:ro
+    networks:
+      edge:
+        ipv4_address: 203.0.113.10
+      origin:
+        ipv4_address: 172.30.0.2
+      ingest:
+        ipv4_address: 172.31.0.2
+      observability:
+        ipv4_address: 172.29.0.2
+
+  executor:
+    <<: [*backend, *read-only-service]
+    user: "0:65532"
+    restart: unless-stopped
+    network_mode: service:gateway
+    depends_on:
+      secret-init:
+        condition: service_completed_successfully
+    cap_add:
+      - NET_ADMIN
+    command:
+      - /bin/sh
+      - -eu
+      - -c
+      - |
+        rm -f /run/sentinelflow-ready/executor-heartbeat
+        /usr/local/bin/executor &
+        child="$$!"
+        heartbeat=""
+        stop() {
+          test -z "$$heartbeat" || kill "$$heartbeat" 2>/dev/null || true
+          kill -TERM "$$child" 2>/dev/null || true
+          wait "$$child" 2>/dev/null || true
+          rm -f /run/sentinelflow-ready/executor-heartbeat
+        }
+        trap stop TERM INT EXIT
+        attempts=0
+        while test ! -S /run/sentinelflow-executor/executor.sock; do
+          kill -0 "$$child" 2>/dev/null || exit 1
+          attempts="$$((attempts + 1))"
+          test "$$attempts" -lt 300 || exit 1
+          sleep 0.1
+        done
+        (
+          while kill -0 "$$child" 2>/dev/null; do
+            touch /run/sentinelflow-ready/executor-heartbeat
+            sleep 1
+          done
+        ) &
+        heartbeat="$$!"
+        wait "$$child"
+    environment:
+      SENTINELFLOW_ENV: demo
+      NFT_BINARY_EXPECTED_SHA256: ${NFT_BINARY_EXPECTED_SHA256}
+      NFT_EXPECTED_VERSION: ${NFT_EXPECTED_VERSION}
+      EXECUTOR_SOCKET: /run/sentinelflow-executor/executor.sock
+      EXECUTOR_REPLAY_JOURNAL: /var/lib/sentinelflow-executor/replay.json
+      EXECUTOR_STARTUP_MODE: bootstrap
+      EXECUTOR_DISPATCH_PUBLIC_KEY_FILE: /run/secrets/sentinelflow/dispatcher-capability-public.pem
+      EXECUTOR_RESULT_PRIVATE_KEY_FILE: /run/secrets/sentinelflow/executor-result-private.pem
+      DEMO_ALLOW_RFC5737: "true"
+      DEMO_ENFORCEMENT_ISOLATION_VERIFIED: "true"
+      DEMO_HOST_RULESET_UNCHANGED: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "test -S /run/sentinelflow-executor/executor.sock"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+      start_period: 5s
+    volumes:
+      - executor-state:/var/lib/sentinelflow-executor
+      - executor-socket:/run/sentinelflow-executor
+      - executor-readiness:/run/sentinelflow-ready
+      - executor-secrets:/run/secrets/sentinelflow:ro
+
+  validator:
+    <<: [*backend, *read-only-service]
+    user: "0:65532"
+    network_mode: none
+    restart: unless-stopped
+    depends_on:
+      history-importer:
+        condition: service_completed_successfully
+      secret-init:
+        condition: service_completed_successfully
+    cap_add:
+      - NET_ADMIN
+    command: ["/usr/local/bin/validator"]
+    environment:
+      SENTINELFLOW_ENV: demo
+      NFT_BINARY_EXPECTED_SHA256: ${NFT_BINARY_EXPECTED_SHA256}
+      NFT_EXPECTED_VERSION: ${NFT_EXPECTED_VERSION}
+      NFT_VALIDATOR_SOCKET: /run/sentinelflow-validator/validator.sock
+    healthcheck:
+      test: ["CMD-SHELL", "test -S /run/sentinelflow-validator/validator.sock"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+      start_period: 5s
+    volumes:
+      - validator-socket:/run/sentinelflow-validator
+
+  validationworker:
+    <<: [*backend, *read-only-service]
+    command: ["/usr/local/bin/validationworker"]
+    restart: unless-stopped
+    depends_on:
+      demo-activator:
+        condition: service_completed_successfully
+      validator:
+        condition: service_healthy
+    environment:
+      SENTINELFLOW_ENV: demo
+      DATABASE_WORKER_URL: ${DATABASE_WORKER_URL}
+      NFT_BINARY_EXPECTED_SHA256: ${NFT_BINARY_EXPECTED_SHA256}
+      NFT_EXPECTED_VERSION: ${NFT_EXPECTED_VERSION}
+      NFT_VALIDATOR_SOCKET: /run/sentinelflow-validator/validator.sock
+      PROTECTED_ORIGIN_IPV4: 172.30.0.10
+      PROTECTED_GATEWAY_IPV4: 172.30.0.2,172.31.0.2,203.0.113.10
+      PROTECTED_MANAGEMENT_IPV4: 172.34.0.10
+      PROTECTED_CURRENT_ADMIN_IPV4: 172.34.0.6
+      DEMO_ALLOW_RFC5737: "true"
+      DEMO_ENFORCEMENT_ISOLATION_VERIFIED: "true"
+      DEMO_HOST_RULESET_UNCHANGED: "true"
+      DEMO_HISTORY_SIGNED_ENVELOPE_FILE: ${DEMO_HISTORY_SIGNED_ENVELOPE_FILE}
+      DEMO_HISTORY_PUBLIC_KEY_B64URL: ${DEMO_HISTORY_PUBLIC_KEY_B64URL}
+      DEMO_HISTORY_RUN_SCOPE: ${DEMO_HISTORY_RUN_SCOPE}
+      DEMO_HISTORY_IMPORT_ID: ${DEMO_HISTORY_IMPORT_ID}
+      DEMO_HISTORY_CLOCK_AT: ${DEMO_HISTORY_CLOCK_AT}
+      DEMO_HISTORY_IMPACT_SOURCE_HEALTH_DIGEST: ${DEMO_HISTORY_IMPACT_SOURCE_HEALTH_DIGEST}
+      DEMO_HISTORY_VALIDATION_ACTIVATION_SECRET_FILE: ${DEMO_HISTORY_VALIDATION_ACTIVATION_SECRET_FILE}
+    volumes:
+      - validator-socket:/run/sentinelflow-validator:ro
+      - ${DEMO_HISTORY_SOURCE:-../data/demo-history}:/run/sentinelflow-demo-history:ro
+      - demo-history-validation-activation:/run/secrets/sentinelflow-demo-history-validation:ro
+    networks:
+      control:
+        ipv4_address: 172.32.0.6
+
+  detector:
+    <<: [*backend, *read-only-service]
+    command: ["/usr/local/bin/detector"]
+    restart: unless-stopped
+    depends_on:
+      history-importer:
+        condition: service_completed_successfully
+    environment:
+      SENTINELFLOW_ENV: demo
+      DATABASE_WORKER_URL: ${DATABASE_WORKER_URL}
+      PATH_CATALOG_VERSION: path-catalog-v1
+      AUTH_ROUTE_LABEL: login
+      DETECT_PATH_SCAN_UNIQUE_PATHS: "8"
+      DETECT_PATH_SCAN_WINDOW: 60s
+      DETECT_SUSPICIOUS_PATH_IDS: admin_console,env_file,git_config,wp_admin,phpmyadmin,server_status,actuator_env,backup_archive
+      DETECT_REQUEST_BURST_COUNT: "120"
+      DETECT_REQUEST_BURST_WINDOW: 10s
+      DETECT_BRUTE_FORCE_FAILURES: "10"
+      DETECT_BRUTE_FORCE_WINDOW: 60s
+      DETECT_CREDENTIAL_STUFFING_FAILURES: "20"
+      DETECT_CREDENTIAL_STUFFING_UNIQUE_ACCOUNTS: "8"
+      DETECT_CREDENTIAL_STUFFING_WINDOW: 5m
+    networks:
+      control:
+        ipv4_address: 172.32.0.7
+
+  retentionworker:
+    <<: [*backend, *read-only-service]
+    command: ["/usr/local/bin/retentionworker"]
+    restart: unless-stopped
+    depends_on:
+      history-importer:
+        condition: service_completed_successfully
+    environment:
+      SENTINELFLOW_ENV: development
+      DATABASE_RETENTION_URL: ${DATABASE_RETENTION_URL}
+      RETENTION_INTERVAL: ${RETENTION_INTERVAL:-1h}
+      RETENTION_RUN_TIMEOUT: ${RETENTION_RUN_TIMEOUT:-5m}
+      RETENTION_MAX_ROWS: ${RETENTION_MAX_ROWS:-1000}
+    healthcheck:
+      test: ["CMD-SHELL", "pidof retentionworker >/dev/null"]
+      interval: 5s
+      timeout: 2s
+      retries: 12
+      start_period: 5s
+    networks:
+      control:
+        ipv4_address: 172.32.0.11
+
+  lifecycleworker:
+    <<: [*backend, *read-only-service]
+    command: ["/usr/local/bin/lifecycleworker"]
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      SENTINELFLOW_ENV: development
+      DATABASE_LIFECYCLE_URL: ${DATABASE_LIFECYCLE_URL}
+      LIFECYCLE_SCHEDULER_ID: ${LIFECYCLE_SCHEDULER_ID:-lifecycle-scheduler-v1}
+      LIFECYCLE_LEASE_OWNER: ${LIFECYCLE_LEASE_OWNER:-lifecycleworker-01}
+      LIFECYCLE_LEASE_DURATION: ${LIFECYCLE_LEASE_DURATION:-10s}
+      LIFECYCLE_RETRY_BACKOFF: ${LIFECYCLE_RETRY_BACKOFF:-1s}
+      LIFECYCLE_POLL_INTERVAL: ${LIFECYCLE_POLL_INTERVAL:-250ms}
+      LIFECYCLE_CLEANUP_TIMEOUT: ${LIFECYCLE_CLEANUP_TIMEOUT:-1s}
+    healthcheck:
+      test: ["CMD-SHELL", "pidof lifecycleworker >/dev/null"]
+      interval: 5s
+      timeout: 2s
+      retries: 12
+      start_period: 5s
+    networks:
+      control:
+        ipv4_address: 172.32.0.13
+
+  controlmetricsexporter:
+    <<: [*backend, *read-only-service]
+    command: ["/usr/local/bin/controlmetricsexporter"]
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      SENTINELFLOW_ENV: development
+      DATABASE_METRICS_URL: ${DATABASE_METRICS_URL}
+      CONTROL_METRICS_LISTEN_ADDR: 172.29.0.3:9091
+      CONTROL_METRICS_SCRAPE_TIMEOUT: ${CONTROL_METRICS_SCRAPE_TIMEOUT:-2s}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://172.29.0.3:9091/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+    networks:
+      control:
+        ipv4_address: 172.32.0.12
+      observability:
+        ipv4_address: 172.29.0.3
+
+  prometheus:
+    image: prom/prometheus:v3.13.1-distroless@sha256:214f8427c8fba80c327bb94a75feb802ae12f2d6ca30812aa6e7d22f09bbea80
+    user: "65532:65532"
+    restart: unless-stopped
+    depends_on:
+      gateway:
+        condition: service_healthy
+      controlmetricsexporter:
+        condition: service_healthy
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=24h
+      - --storage.tsdb.retention.size=48MB
+      - --web.listen-address=172.29.0.4:9090
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    cpus: "0.50"
+    mem_limit: 256m
+    tmpfs:
+      - /prometheus:rw,noexec,nosuid,nodev,size=64m,mode=0750,uid=65532,gid=65532
+      - /tmp:rw,noexec,nosuid,nodev,size=8m,mode=1777
+    healthcheck:
+      test: ["CMD", "/bin/promtool", "check", "ready", "--url=http://172.29.0.4:9090"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./observability/control-plane-alerts.yaml:/etc/prometheus/control-plane-alerts.yaml:ro
+    networks:
+      observability:
+        ipv4_address: 172.29.0.4
+
+  stubworker:
+    <<: [*backend, *read-only-service]
+    profiles: ["stub-ai"]
+    command: ["/usr/local/bin/stubworker"]
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      demo-activator:
+        condition: service_completed_successfully
+    environment:
+      SENTINELFLOW_ENV: demo
+      DATABASE_WORKER_URL: ${DATABASE_WORKER_URL}
+      STUB_WORKER_LEASE_DURATION: 30s
+      STUB_WORKER_POLL_INTERVAL: 250ms
+      STUB_WORKER_MAX_CONCURRENCY: "2"
+      DEMO_HISTORY_SIGNED_ENVELOPE_FILE: ${DEMO_HISTORY_SIGNED_ENVELOPE_FILE}
+      DEMO_HISTORY_PUBLIC_KEY_B64URL: ${DEMO_HISTORY_PUBLIC_KEY_B64URL}
+      DEMO_HISTORY_RUN_SCOPE: ${DEMO_HISTORY_RUN_SCOPE}
+      DEMO_HISTORY_IMPORT_ID: ${DEMO_HISTORY_IMPORT_ID}
+      DEMO_HISTORY_CLOCK_AT: ${DEMO_HISTORY_CLOCK_AT}
+      DEMO_HISTORY_IMPACT_SOURCE_HEALTH_DIGEST: ${DEMO_HISTORY_IMPACT_SOURCE_HEALTH_DIGEST}
+      DEMO_HISTORY_ANALYSIS_ACTIVATION_SECRET_FILE: ${DEMO_HISTORY_ANALYSIS_ACTIVATION_SECRET_FILE}
+    healthcheck:
+      test: ["CMD-SHELL", "pidof stubworker >/dev/null"]
+      interval: 5s
+      timeout: 2s
+      retries: 12
+      start_period: 5s
+    volumes:
+      - ${DEMO_HISTORY_SOURCE:-../data/demo-history}:/run/sentinelflow-demo-history:ro
+      - demo-history-analysis-activation:/run/secrets/sentinelflow-demo-history-analysis:ro
+    networks:
+      control:
+        ipv4_address: 172.32.0.9
+
+  worker:
+    <<: [*backend, *read-only-service]
+    profiles: ["live-ai"]
+    command: ["/usr/local/bin/worker"]
+    restart: unless-stopped
+    depends_on:
+      demo-activator:
+        condition: service_completed_successfully
+    environment:
+      SENTINELFLOW_ENV: demo
+      DATABASE_WORKER_URL: ${DATABASE_WORKER_URL}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_MODEL: gpt-5.6-sol
+      OPENAI_REASONING_EFFORT: medium
+      OPENAI_STORE: "false"
+      OPENAI_RATE_CARD_VERSION: ${OPENAI_RATE_CARD_VERSION}
+      OPENAI_INPUT_USD_PER_1M_TOKENS: ${OPENAI_INPUT_USD_PER_1M_TOKENS}
+      OPENAI_CACHED_INPUT_USD_PER_1M_TOKENS: ${OPENAI_CACHED_INPUT_USD_PER_1M_TOKENS}
+      OPENAI_OUTPUT_USD_PER_1M_TOKENS: ${OPENAI_OUTPUT_USD_PER_1M_TOKENS}
+      DEMO_HISTORY_SIGNED_ENVELOPE_FILE: ${DEMO_HISTORY_SIGNED_ENVELOPE_FILE}
+      DEMO_HISTORY_PUBLIC_KEY_B64URL: ${DEMO_HISTORY_PUBLIC_KEY_B64URL}
+      DEMO_HISTORY_RUN_SCOPE: ${DEMO_HISTORY_RUN_SCOPE}
+      DEMO_HISTORY_IMPORT_ID: ${DEMO_HISTORY_IMPORT_ID}
+      DEMO_HISTORY_CLOCK_AT: ${DEMO_HISTORY_CLOCK_AT}
+      DEMO_HISTORY_IMPACT_SOURCE_HEALTH_DIGEST: ${DEMO_HISTORY_IMPACT_SOURCE_HEALTH_DIGEST}
+      DEMO_HISTORY_ANALYSIS_ACTIVATION_SECRET_FILE: ${DEMO_HISTORY_ANALYSIS_ACTIVATION_SECRET_FILE}
+    volumes:
+      - ${DEMO_HISTORY_SOURCE:-../data/demo-history}:/run/sentinelflow-demo-history:ro
+      - demo-history-analysis-activation:/run/secrets/sentinelflow-demo-history-analysis:ro
+    networks:
+      control:
+        ipv4_address: 172.32.0.4
+      ai-egress:
+        ipv4_address: 172.33.0.4
+
+  dispatcher:
+    <<: [*backend, *read-only-service]
+    command:
+      - /bin/sh
+      - -eu
+      - -c
+      - |
+        attempts=0
+        while test ! -S /run/sentinelflow-executor/executor.sock; do
+          attempts="$$((attempts + 1))"
+          test "$$attempts" -lt 300 || exit 1
+          sleep 0.1
+        done
+        exec /usr/local/bin/dispatcher
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      secret-init:
+        condition: service_completed_successfully
+    environment:
+      SENTINELFLOW_ENV: demo
+      DATABASE_DISPATCHER_URL: ${DATABASE_DISPATCHER_URL}
+      EXECUTOR_SOCKET: /run/sentinelflow-executor/executor.sock
+      DISPATCHER_SIGNING_PRIVATE_KEY_FILE: /run/secrets/sentinelflow/dispatcher-capability-private.pem
+      DISPATCHER_RESULT_PUBLIC_KEY_FILE: /run/secrets/sentinelflow/executor-result-public.pem
+    volumes:
+      - executor-socket:/run/sentinelflow-executor:ro
+      - dispatcher-secrets:/run/secrets/sentinelflow:ro
+    networks:
+      control:
+        ipv4_address: 172.32.0.5
+
+  web:
+    image: sentinelflow/web:demo
+    build:
+      context: ..
+      dockerfile: deployments/Dockerfile.web
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=16m,mode=1777
+      - /var/cache/nginx:rw,noexec,nosuid,nodev,size=16m,mode=0750
+      - /var/run:rw,noexec,nosuid,nodev,size=1m,mode=0750
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/health/live"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+      start_period: 5s
+    ports:
+      - 127.0.0.1:${WEB_PUBLISHED_PORT:-4173}:8080
+    networks:
+      management:
+        ipv4_address: 172.34.0.6
+
+  simulator:
+    <<: [*backend, *read-only-service]
+    profiles: ["simulate"]
+    command:
+      - /usr/local/bin/simulator
+      - -gateway-url
+      - http://gateway:8080
+      - -gateway-host
+      - localhost:8080
+      - -seed
+      - "20260718"
+      - ${SIMULATOR_SCENARIO:-normal}
+    restart: "no"
+    depends_on:
+      gateway:
+        condition: service_healthy
+    networks:
+      edge:
+        ipv4_address: 203.0.113.20
+
+volumes:
+  postgres-data:
+  gateway-state:
+  auth-state:
+  executor-state:
+  executor-socket:
+  validator-socket:
+  executor-readiness:
+  dispatcher-secrets:
+  executor-secrets:
+  demo-history-capability-receipts:
+  demo-history-analysis-activation:
+  demo-history-validation-activation:
+
+networks:
+  edge:
+    ipam:
+      config:
+        - subnet: 203.0.113.0/24
+  origin:
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
+  ingest:
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.31.0.0/24
+  control:
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.32.0.0/24
+  management:
+    ipam:
+      config:
+        - subnet: 172.34.0.0/24
+  ai-egress:
+    ipam:
+      config:
+        - subnet: 172.33.0.0/24
+  observability:
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.29.0.0/24

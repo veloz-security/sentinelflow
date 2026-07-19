@@ -1,0 +1,151 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinelflow.example/contracts/enforcement/validation_snapshot_v1.schema.json",
+  "title": "SentinelFlow immutable ordered validation snapshot v1",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "validation-snapshot-v1"
+    },
+    "validation_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "policy_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "evidence_snapshot_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "analysis_input_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "analysis_output_schema_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "prompt_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "generated_candidate_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "canonical_artifact_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "grammar_version": {
+      "const": "nft-blacklist-v1"
+    },
+    "parser_version": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9._-]{0,63}$"
+    },
+    "validator_version": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9._-]{0,63}$"
+    },
+    "base_chain_contract_raw_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "live_owned_schema_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "protected_ipv4_static_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "protected_ipv4_effective_config_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "nft_binary_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "nft_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][A-Za-z0-9._-]+)?$"
+    },
+    "historical_impact_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "checks": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 16,
+      "description": "Ordered hard-gate results. Every item must be pass; duplicate or reordered check IDs are rejected by application validation.",
+      "items": {
+        "$ref": "#/$defs/check"
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "valid_until": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "schema_version",
+    "validation_id",
+    "policy_digest",
+    "evidence_snapshot_digest",
+    "analysis_input_digest",
+    "analysis_output_schema_digest",
+    "prompt_digest",
+    "generated_candidate_digest",
+    "canonical_artifact_digest",
+    "grammar_version",
+    "parser_version",
+    "validator_version",
+    "base_chain_contract_raw_digest",
+    "live_owned_schema_digest",
+    "protected_ipv4_static_digest",
+    "protected_ipv4_effective_config_digest",
+    "nft_binary_digest",
+    "nft_version",
+    "historical_impact_digest",
+    "checks",
+    "created_at",
+    "valid_until"
+  ],
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "check": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "check_id": {
+          "enum": [
+            "structured_output",
+            "command_grammar",
+            "policy_evidence_command_consistency",
+            "protected_network",
+            "owned_schema_syntax",
+            "historical_impact"
+          ]
+        },
+        "result": {
+          "const": "pass"
+        },
+        "reason_code": {
+          "const": "ok"
+        },
+        "input_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      },
+      "required": [
+        "check_id",
+        "result",
+        "reason_code",
+        "input_digest"
+      ]
+    }
+  }
+}

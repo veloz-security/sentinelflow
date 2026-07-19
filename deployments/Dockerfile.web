@@ -1,0 +1,31 @@
+# syntax=docker/dockerfile:1.12@sha256:93bfd3b68c109427185cd78b4779fc82b484b0b7618e36d0f104d4d801e66d25
+
+FROM node:24.13.0-alpine@sha256:cd6fb7efa6490f039f3471a189214d5f548c11df1ff9e5b181aa49e22c14383e AS build
+
+ARG SOURCE_DATE_EPOCH=0
+
+WORKDIR /src/web
+
+COPY web/package.json web/package-lock.json ./
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --ignore-scripts --no-audit --no-fund
+
+COPY contracts /src/contracts
+COPY web/ ./
+RUN npm run build
+
+FROM nginxinc/nginx-unprivileged:1.29.5-alpine@sha256:42a7d7f2ee23e9f5a1dcdf3647ba5c585bbd18f79e79cd817e70e8cd61c55779
+
+ARG SOURCE_DATE_EPOCH=0
+
+USER 0:0
+
+COPY --chown=0:0 deployments/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --chown=0:0 --from=build /src/web/dist/ /usr/share/nginx/html/
+RUN chmod 0444 /etc/nginx/conf.d/default.conf \
+    && find /usr/share/nginx/html -type d -exec chmod 0555 {} + \
+    && find /usr/share/nginx/html -type f -exec chmod 0444 {} +
+
+EXPOSE 8080
+
+USER 101:101

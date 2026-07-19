@@ -1,0 +1,58 @@
+# macOS and editors
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+secrets/
+*.key
+*.pem
+*.p12
+
+# Go
+bin/
+coverage.out
+*.test
+/api
+/controlmetricsexporter
+/demoactivator
+/demoapp
+/democonfig
+/detector
+/dispatcher
+/executor
+/exporttool
+/gateway
+/historyimporter
+/recoverytool
+/retentionworker
+/sentinelflow-recoverytool
+/simulator
+/stubworker
+/thresholdreport
+/validationworker
+/validator
+/worker
+
+# Frontend
+node_modules/
+web/dist/
+web/coverage/
+web/output/
+
+# Local runtime data
+tmp/
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs and generated evidence
+*.log
+artifacts/
+exports/
+reports/

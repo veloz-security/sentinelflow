@@ -1,0 +1,231 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinelflow.local/contracts/export/export_bundle_v1.schema.json",
+  "title": "SentinelFlow privacy-preserving incident and audit export bundle v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "manifest", "incidents", "audit_events"],
+  "properties": {
+    "schema_version": { "const": "sentinelflow-export-bundle-v1" },
+    "manifest": { "$ref": "#/$defs/manifest" },
+    "incidents": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": { "$ref": "#/$defs/incident" }
+    },
+    "audit_events": {
+      "type": "array",
+      "maxItems": 50000,
+      "items": { "$ref": "#/$defs/audit" }
+    }
+  },
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "nullable_uuid": {
+      "oneOf": [{ "$ref": "#/$defs/uuid" }, { "type": "null" }]
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "nullable_digest": {
+      "oneOf": [{ "$ref": "#/$defs/digest" }, { "type": "null" }]
+    },
+    "timestamp": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?Z$"
+    },
+    "nullable_timestamp": {
+      "oneOf": [{ "$ref": "#/$defs/timestamp" }, { "type": "null" }]
+    },
+    "pseudonym": {
+      "type": "string",
+      "pattern": "^(?:source|actor|trace):[0-9a-f]{64}$"
+    },
+    "manifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "export_id",
+        "created_at",
+        "database_snapshot_at",
+        "window",
+        "filters",
+        "pseudonymization",
+        "incident_count",
+        "audit_event_count",
+        "incident_records_digest",
+        "audit_chain_genesis",
+        "audit_chain_root",
+        "manifest_digest"
+      ],
+      "properties": {
+        "schema_version": { "const": "sentinelflow-export-manifest-v1" },
+        "export_id": { "$ref": "#/$defs/digest" },
+        "created_at": { "$ref": "#/$defs/timestamp" },
+        "database_snapshot_at": { "$ref": "#/$defs/timestamp" },
+        "window": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["since", "until"],
+          "properties": {
+            "since": { "$ref": "#/$defs/timestamp" },
+            "until": { "$ref": "#/$defs/timestamp" }
+          }
+        },
+        "filters": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["incident_id"],
+          "properties": {
+            "incident_id": { "$ref": "#/$defs/nullable_uuid" }
+          }
+        },
+        "pseudonymization": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["algorithm", "key_id"],
+          "properties": {
+            "algorithm": { "const": "HMAC-SHA-256" },
+            "key_id": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+            }
+          }
+        },
+        "incident_count": { "type": "integer", "minimum": 0, "maximum": 10000 },
+        "audit_event_count": { "type": "integer", "minimum": 0, "maximum": 50000 },
+        "incident_records_digest": { "$ref": "#/$defs/digest" },
+        "audit_chain_genesis": {
+          "const": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        "audit_chain_root": { "$ref": "#/$defs/digest" },
+        "manifest_digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "incident": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "incident_id",
+        "kind",
+        "state",
+        "source_pseudonym",
+        "service_label",
+        "first_seen",
+        "last_seen",
+        "closed_at",
+        "reopen_until",
+        "deterministic_score",
+        "version",
+        "analysis_failure_reason",
+        "created_at",
+        "updated_at",
+        "record_digest"
+      ],
+      "properties": {
+        "schema_version": { "const": "sentinelflow-export-incident-v1" },
+        "incident_id": { "$ref": "#/$defs/uuid" },
+        "kind": {
+          "enum": ["credential_stuffing", "brute_force", "path_scan", "request_burst", "mixed", "unknown"]
+        },
+        "state": { "enum": ["open", "analyzing", "review_ready", "analysis_failed", "closed"] },
+        "source_pseudonym": { "$ref": "#/$defs/pseudonym" },
+        "service_label": { "type": "string", "pattern": "^[a-z][a-z0-9_-]{0,63}$" },
+        "first_seen": { "$ref": "#/$defs/timestamp" },
+        "last_seen": { "$ref": "#/$defs/timestamp" },
+        "closed_at": { "$ref": "#/$defs/nullable_timestamp" },
+        "reopen_until": { "$ref": "#/$defs/nullable_timestamp" },
+        "deterministic_score": {
+          "type": "string",
+          "pattern": "^(?:0|0\\.[0-9]{1,5}|1|1\\.0{1,5})$"
+        },
+        "version": { "type": "integer", "minimum": 1 },
+        "analysis_failure_reason": {
+          "oneOf": [
+            {
+              "enum": [
+                "budget_exhausted",
+                "input_too_large",
+                "network_error",
+                "http_408",
+                "http_409",
+                "rate_limited",
+                "server_error",
+                "timeout",
+                "refused",
+                "incomplete",
+                "schema_invalid",
+                "evidence_invalid",
+                "unsupported_action",
+                "cancelled",
+                "configuration_error"
+              ]
+            },
+            { "type": "null" }
+          ]
+        },
+        "created_at": { "$ref": "#/$defs/timestamp" },
+        "updated_at": { "$ref": "#/$defs/timestamp" },
+        "record_digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "audit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "sequence",
+        "event_id",
+        "actor_type",
+        "actor_pseudonym",
+        "action",
+        "object_type",
+        "object_id",
+        "incident_id",
+        "policy_id",
+        "policy_version",
+        "enforcement_action_id",
+        "trace_pseudonym",
+        "primary_digest",
+        "secondary_digest",
+        "outcome",
+        "occurred_at",
+        "recorded_at",
+        "previous_record_digest",
+        "record_digest"
+      ],
+      "properties": {
+        "schema_version": { "const": "sentinelflow-export-audit-v1" },
+        "sequence": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+        "event_id": { "$ref": "#/$defs/uuid" },
+        "actor_type": { "enum": ["administrator", "system", "dispatcher", "executor"] },
+        "actor_pseudonym": { "$ref": "#/$defs/pseudonym" },
+        "action": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$" },
+        "object_type": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$" },
+        "object_id": { "$ref": "#/$defs/nullable_uuid" },
+        "incident_id": { "$ref": "#/$defs/nullable_uuid" },
+        "policy_id": { "$ref": "#/$defs/nullable_uuid" },
+        "policy_version": {
+          "oneOf": [{ "type": "integer", "minimum": 1 }, { "type": "null" }]
+        },
+        "enforcement_action_id": { "$ref": "#/$defs/nullable_uuid" },
+        "trace_pseudonym": {
+          "oneOf": [{ "$ref": "#/$defs/pseudonym" }, { "type": "null" }]
+        },
+        "primary_digest": { "$ref": "#/$defs/nullable_digest" },
+        "secondary_digest": { "$ref": "#/$defs/nullable_digest" },
+        "outcome": { "enum": ["accepted", "rejected", "succeeded", "failed", "indeterminate"] },
+        "occurred_at": { "$ref": "#/$defs/timestamp" },
+        "recorded_at": { "$ref": "#/$defs/timestamp" },
+        "previous_record_digest": { "$ref": "#/$defs/digest" },
+        "record_digest": { "$ref": "#/$defs/digest" }
+      }
+    }
+  }
+}

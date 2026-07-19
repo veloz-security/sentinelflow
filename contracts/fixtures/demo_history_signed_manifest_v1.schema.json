@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinelflow.example/contracts/fixtures/demo_history_signed_manifest_v1.schema.json",
+  "title": "SentinelFlow checked-in signed demo-history fixture envelope v1",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "demo-history-signed-manifest-v1"
+    },
+    "fixture_only": {
+      "const": true
+    },
+    "key_scope": {
+      "const": "public-test-only; actual demo runs must generate a run-scoped key and manifest"
+    },
+    "manifest": {
+      "$ref": "../enforcement/demo_history_manifest_v1.schema.json"
+    },
+    "manifest_jcs_b64url": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "minLength": 1,
+      "maxLength": 21846
+    },
+    "manifest_digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "signature_b64url": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{86}$"
+    },
+    "public_key_b64url": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{43}$"
+    }
+  },
+  "required": [
+    "schema_version",
+    "fixture_only",
+    "key_scope",
+    "manifest",
+    "manifest_jcs_b64url",
+    "manifest_digest",
+    "signature_b64url",
+    "public_key_b64url"
+  ]
+}

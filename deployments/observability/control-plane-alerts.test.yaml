@@ -1,0 +1,683 @@
+rule_files:
+  - control-plane-alerts.yaml
+
+evaluation_interval: 1m
+
+tests:
+  - name: entirely absent scrape targets fire after the hold period
+    interval: 1m
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: SentinelFlowControlMetricsTargetUnavailable
+        exp_alerts:
+          - exp_labels:
+              job: sentinelflow-control
+              severity: critical
+            exp_annotations:
+              summary: The aggregate control-plane metrics target is absent or unavailable.
+      - eval_time: 2m
+        alertname: SentinelFlowGatewayMetricsTargetUnavailable
+        exp_alerts:
+          - exp_labels:
+              job: sentinelflow-gateway
+              severity: critical
+            exp_annotations:
+              summary: The Gateway metrics target is absent or unavailable.
+
+  - name: unavailable scrape targets fire after the hold period
+    interval: 1m
+    input_series:
+      - series: up{job="sentinelflow-control",instance="172.29.0.3:9091"}
+        values: 0x3
+      - series: up{job="sentinelflow-gateway",instance="172.29.0.2:9090"}
+        values: 0x3
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: SentinelFlowControlMetricsTargetUnavailable
+        exp_alerts:
+          - exp_labels:
+              instance: 172.29.0.3:9091
+              job: sentinelflow-control
+              severity: critical
+            exp_annotations:
+              summary: The aggregate control-plane metrics target is absent or unavailable.
+      - eval_time: 2m
+        alertname: SentinelFlowGatewayMetricsTargetUnavailable
+        exp_alerts:
+          - exp_labels:
+              instance: 172.29.0.2:9090
+              job: sentinelflow-gateway
+              severity: critical
+            exp_annotations:
+              summary: The Gateway metrics target is absent or unavailable.
+
+  - name: resolved or idle retained state does not fire
+    interval: 1m
+    input_series:
+      - series: sentinelflow_control_audit_recovery_jobs{state="pending"}
+        values: 0x12
+      - series: sentinelflow_control_audit_recovery_jobs{state="retry"}
+        values: 0x12
+      - series: sentinelflow_control_audit_recovery_jobs{state="leased"}
+        values: 0x12
+      - series: sentinelflow_control_audit_recovery_jobs{state="dead"}
+        values: 0x12
+      - series: sentinelflow_control_audit_latest_age_seconds
+        values: 3600x12
+      - series: sentinelflow_control_hil_expired_recent_5m
+        values: 0x12
+      - series: sentinelflow_control_sse_watermark_lag
+        values: 0x12
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: SentinelFlowAuditRecoveryStalled
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: SentinelFlowApprovalExpired
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: SentinelFlowSSELedgerStale
+        exp_alerts: []
+
+  - name: explicit unavailable SSE client telemetry fails closed
+    interval: 1m
+    input_series:
+      - series: sentinelflow_control_sse_clients_observable
+        values: 0x3
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: SentinelFlowSSEClientObservabilityUnavailable
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: Authoritative SSE client cardinality is unavailable in the current runtime.
+
+  - name: exhausted daily AI budget is actionable
+    interval: 1m
+    input_series:
+      - series: sentinelflow_control_ai_budget_micro_usd{kind="limit"}
+        values: 10000000x3
+      - series: sentinelflow_control_ai_budget_micro_usd{kind="remaining"}
+        values: 0x3
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: SentinelFlowAIBudgetExhausted
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: The configured UTC-day AI analysis budget is exhausted.
+
+  - name: gateway queue saturation is held and clears after recovery
+    interval: 1m
+    input_series:
+      - series: sentinelflow_event_queue_capacity
+        values: 10x7
+      - series: sentinelflow_event_queue_depth
+        values: 8x3 2x4
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: SentinelFlowGatewayEventQueueSaturation
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: The Gateway event queue has remained at or above 80 percent capacity.
+      - eval_time: 5m
+        alertname: SentinelFlowGatewayEventQueueSaturation
+        exp_alerts: []
+
+  - name: dispatch alert follows recent failures and unresolved recovery work
+    interval: 1m
+    input_series:
+      - series: sentinelflow_control_dispatch_failures_5m
+        values: 1x3 0x4
+      - series: sentinelflow_control_dead_letters_unresolved{kind="dispatch_add"}
+        values: 0x7
+      - series: sentinelflow_control_dispatch_jobs{operation="add",state="dead"}
+        values: 1x7
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: SentinelFlowDispatchFailure
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: A dispatcher or executor operation failed, became indeterminate, or dead-lettered.
+      - eval_time: 5m
+        alertname: SentinelFlowDispatchFailure
+        exp_alerts: []
+
+  - name: unresolved dispatch dead letter fires and clears when reconciled
+    interval: 1m
+    input_series:
+      - series: sentinelflow_control_dispatch_failures_5m
+        values: 0x7
+      - series: sentinelflow_control_dead_letters_unresolved{kind="reconcile"}
+        values: 1x3 0x4
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: SentinelFlowDispatchFailure
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: A dispatcher or executor operation failed, became indeterminate, or dead-lettered.
+      - eval_time: 5m
+        alertname: SentinelFlowDispatchFailure
+        exp_alerts: []
+
+  - name: present scrape targets with absent business series do not invent incidents
+    interval: 1m
+    input_series:
+      - series: up{job="sentinelflow-control"}
+        values: 1x12
+      - series: up{job="sentinelflow-gateway"}
+        values: 1x12
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: SentinelFlowControlMetricsTargetUnavailable
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: SentinelFlowGatewayMetricsTargetUnavailable
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: SentinelFlowOutboxReadyBacklog
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: SentinelFlowLifecycleScheduleOverdue
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: SentinelFlowLifecycleScheduleRetrying
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: SentinelFlowLifecycleScheduleDead
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: SentinelFlowDeadLetterUnresolved
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: SentinelFlowSourceCoverageDegraded
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: SentinelFlowEventStreamUnavailable
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: SentinelFlowEventLag
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: SentinelFlowAuthBindingOverdue
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: SentinelFlowGatewayEventDrop
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: SentinelFlowGatewayEventQueueSaturation
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: SentinelFlowEventDeliveryFailure
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: SentinelFlowGatewayLatencySLOBreach
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: SentinelFlowGatewayOriginFailure
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: SentinelFlowAIProviderOutage
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: SentinelFlowAIBudgetExhausted
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: SentinelFlowValidationFailure
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: SentinelFlowApprovalBacklog
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: SentinelFlowApprovalExpired
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: SentinelFlowDispatchFailure
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: SentinelFlowExecutionReplayConflict
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: SentinelFlowCapabilityExpiredUnused
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: SentinelFlowRevocationFailure
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: SentinelFlowEnforcementFailure
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: SentinelFlowEnforcementExpiryLag
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: SentinelFlowEnforcementEarlyMissing
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: SentinelFlowAuditRecoveryStalled
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: SentinelFlowSSELedgerStale
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: SentinelFlowSSEClientObservabilityUnavailable
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: SentinelFlowSSEClientCapacity
+        exp_alerts: []
+
+  - name: control plane degradation lag backlog and overdue binding fire exactly
+    interval: 1m
+    input_series:
+      - series: sentinelflow_control_outbox_oldest_ready_age_seconds{kind="analyze"}
+        values: 120x5
+      - series: sentinelflow_control_outbox_lease_expiry_lag_seconds{kind="validate"}
+        values: 0x5
+      - series: sentinelflow_control_dead_letters_unresolved{kind="detect"}
+        values: 1x5
+      - series: sentinelflow_control_expected_sources{endpoint="gateway",state="open_gap"}
+        values: 1x5
+      - series: sentinelflow_control_sources_current{state="degraded"}
+        values: 0x5
+      - series: sentinelflow_event_sender_degraded
+        values: 0x5
+      - series: sentinelflow_control_event_last_seen_available{endpoint="gateway"}
+        values: 0x5
+      - series: sentinelflow_control_event_last_seen_available{endpoint="auth"}
+        values: 1x5
+      - series: sentinelflow_control_event_lag_seconds{endpoint="gateway"}
+        values: 301x5
+      - series: sentinelflow_control_event_lag_seconds{endpoint="auth"}
+        values: 0x5
+      - series: sentinelflow_control_auth_binding_overdue
+        values: 1x5
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: SentinelFlowOutboxReadyBacklog
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: Control-plane work has remained ready for more than one minute.
+      - eval_time: 2m
+        alertname: SentinelFlowDeadLetterUnresolved
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: At least one unresolved control-plane job requires operator recovery.
+      - eval_time: 2m
+        alertname: SentinelFlowSourceCoverageDegraded
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: Expected evidence coverage is incomplete or degraded; enforcement must fail closed.
+      - eval_time: 3m
+        alertname: SentinelFlowEventStreamUnavailable
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: One required event endpoint has not produced an authenticated batch.
+      - eval_time: 3m
+        alertname: SentinelFlowEventLag
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: A required event endpoint has not advanced for five minutes.
+      - eval_time: 2m
+        alertname: SentinelFlowAuthBindingOverdue
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: Auth evidence remains unbound beyond its trusted correlation deadline.
+
+  - name: lifecycle due and expired lease lag fire without exposing dimensions
+    interval: 1m
+    input_series:
+      - series: sentinelflow_control_lifecycle_oldest_due_age_seconds{purpose="reconciliation"}
+        values: 61x5
+      - series: sentinelflow_control_lifecycle_lease_expiry_lag_seconds{purpose="expiry_confirmation"}
+        values: 31x5
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: SentinelFlowLifecycleScheduleOverdue
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: Enforcement lifecycle inspection work is overdue or has an expired lease.
+
+  - name: lifecycle due and lease thresholds are strict
+    interval: 1m
+    input_series:
+      - series: sentinelflow_control_lifecycle_oldest_due_age_seconds{purpose="reconciliation"}
+        values: 60x5
+      - series: sentinelflow_control_lifecycle_lease_expiry_lag_seconds{purpose="expiry_confirmation"}
+        values: 30x5
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: SentinelFlowLifecycleScheduleOverdue
+        exp_alerts: []
+
+  - name: lifecycle retry alert holds then clears while dead persists
+    interval: 1m
+    input_series:
+      - series: sentinelflow_control_lifecycle_schedules{purpose="reconciliation",state="retry"}
+        values: 1x7 0x5
+      - series: sentinelflow_control_lifecycle_schedules{purpose="operator_status",state="dead"}
+        values: 1x13
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: SentinelFlowLifecycleScheduleRetrying
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: Enforcement lifecycle inspection work has remained in retry state.
+      - eval_time: 10m
+        alertname: SentinelFlowLifecycleScheduleRetrying
+        exp_alerts: []
+      - eval_time: 2m
+        alertname: SentinelFlowLifecycleScheduleDead
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: Enforcement lifecycle inspection work requires operator recovery.
+      - eval_time: 10m
+        alertname: SentinelFlowLifecycleScheduleDead
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: Enforcement lifecycle inspection work requires operator recovery.
+
+  - name: gateway drop delivery reset origin failure and saturation remain visible
+    interval: 1m
+    input_series:
+      - series: sentinelflow_event_dropped_total
+        values: 0 1 1 1 1 1 1 1 1
+      - series: sentinelflow_event_batch_attempts_total{outcome="retryable_error"}
+        values: 0 2 0 0 0 0 0 0 0
+      - series: sentinelflow_event_batch_retries_total
+        values: 0 4 0 0 0 0 0 0 0
+      - series: sentinelflow_gateway_proxy_errors_total{reason="upstream"}
+        values: 0 1 0 0 0 0 0 0 0
+      - series: sentinelflow_gateway_requests_total{status_class="5xx"}
+        values: 0x9
+      - series: sentinelflow_event_queue_capacity
+        values: 100x9
+      - series: sentinelflow_event_queue_depth
+        values: 80x3 10x6
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: SentinelFlowGatewayEventDrop
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: The Gateway event queue dropped evidence records.
+      - eval_time: 2m
+        alertname: SentinelFlowEventDeliveryFailure
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: Gateway event delivery is failing or repeatedly retrying; evidence coverage is degraded.
+      - eval_time: 2m
+        alertname: SentinelFlowGatewayOriginFailure
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: The fixed private origin is timing out or returning an unusable response.
+      - eval_time: 2m
+        alertname: SentinelFlowGatewayEventQueueSaturation
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: The Gateway event queue has remained at or above 80 percent capacity.
+      - eval_time: 8m
+        alertname: SentinelFlowEventDeliveryFailure
+        exp_alerts: []
+      - eval_time: 8m
+        alertname: SentinelFlowGatewayOriginFailure
+        exp_alerts: []
+      - eval_time: 8m
+        alertname: SentinelFlowGatewayEventQueueSaturation
+        exp_alerts: []
+
+  - name: end to end request latency histogram fires and a fast histogram does not
+    interval: 1m
+    input_series:
+      - series: sentinelflow_gateway_request_duration_seconds_bucket{le="0.005000000"}
+        values: 0 5 10 15 20 25 30 35
+      - series: sentinelflow_gateway_request_duration_seconds_bucket{le="0.010000000"}
+        values: 0 100 200 300 400 500 600 700
+      - series: sentinelflow_gateway_request_duration_seconds_bucket{le="+Inf"}
+        values: 0 100 200 300 400 500 600 700
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: SentinelFlowGatewayLatencySLOBreach
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: Observed end-to-end Gateway request p95 exceeds five milliseconds; isolate origin latency before attributing proxy overhead.
+
+  - name: fast end to end request latency histogram stays below warning
+    interval: 1m
+    input_series:
+      - series: sentinelflow_gateway_request_duration_seconds_bucket{le="0.005000000"}
+        values: 0 100 200 300 400 500 600 700
+      - series: sentinelflow_gateway_request_duration_seconds_bucket{le="0.010000000"}
+        values: 0 100 200 300 400 500 600 700
+      - series: sentinelflow_gateway_request_duration_seconds_bucket{le="+Inf"}
+        values: 0 100 200 300 400 500 600 700
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: SentinelFlowGatewayLatencySLOBreach
+        exp_alerts: []
+
+  - name: ai validation approval and budget failure states are actionable
+    interval: 1m
+    input_series:
+      - series: sentinelflow_control_ai_failures_5m
+        values: 3x8
+      - series: sentinelflow_control_ai_started_stale
+        values: 0x8
+      - series: sentinelflow_control_ai_budget_micro_usd{kind="limit"}
+        values: 10000000x8
+      - series: sentinelflow_control_ai_budget_micro_usd{kind="remaining"}
+        values: 0x8
+      - series: sentinelflow_control_validation_failures_5m
+        values: 1x8
+      - series: sentinelflow_control_validation_started_stale
+        values: 0x8
+      - series: sentinelflow_control_hil_challenges{operation="approve",state="pending"}
+        values: 11x8
+      - series: sentinelflow_control_hil_expired_recent_5m
+        values: 1x8
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: SentinelFlowAIProviderOutage
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: AI analysis is repeatedly failing or an attempt is stale.
+      - eval_time: 2m
+        alertname: SentinelFlowAIBudgetExhausted
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: The configured UTC-day AI analysis budget is exhausted.
+      - eval_time: 2m
+        alertname: SentinelFlowValidationFailure
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: Policy validation rejected, interrupted, or stalled work.
+      - eval_time: 6m
+        alertname: SentinelFlowApprovalBacklog
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: Administrator decision work is accumulating.
+      - eval_time: 2m
+        alertname: SentinelFlowApprovalExpired
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: An exact-artifact HIL challenge expired in the last five minutes.
+
+  - name: capability replay revocation enforcement expiry and early missing fire
+    interval: 1m
+    input_series:
+      - series: sentinelflow_control_execution_replay_conflicts_retained
+        values: 1x4
+      - series: sentinelflow_control_execution_capabilities{operation="add",state="unconsumed_expired"}
+        values: 1x4
+      - series: sentinelflow_control_revocations{state="indeterminate"}
+        values: 1x4
+      - series: sentinelflow_control_enforcement_actions{state="failed"}
+        values: 1x4
+      - series: sentinelflow_control_enforcement_expiry_lag_seconds
+        values: 31x4
+      - series: sentinelflow_control_enforcement_early_missing
+        values: 1x4
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: SentinelFlowExecutionReplayConflict
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: An executor capability was replayed with conflicting persisted bytes.
+      - eval_time: 2m
+        alertname: SentinelFlowCapabilityExpiredUnused
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: A signed one-shot executor capability expired without a persisted consumption result.
+      - eval_time: 2m
+        alertname: SentinelFlowRevocationFailure
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: An administrator-authorized revocation failed or is indeterminate and requires reconciliation.
+      - eval_time: 2m
+        alertname: SentinelFlowEnforcementFailure
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: An enforcement action requires reconciliation or operator recovery.
+      - eval_time: 2m
+        alertname: SentinelFlowEnforcementExpiryLag
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: An active enforcement action remains past its expected native expiry.
+      - eval_time: 2m
+        alertname: SentinelFlowEnforcementEarlyMissing
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: Executor read-back found an active action missing before expected expiry.
+
+  - name: audit recovery uses unresolved state and ignores historical dead jobs
+    interval: 1m
+    input_series:
+      - series: sentinelflow_control_audit_recovery_jobs{state="pending"}
+        values: 1x8
+      - series: sentinelflow_control_audit_recovery_jobs{state="retry"}
+        values: 0x8
+      - series: sentinelflow_control_audit_recovery_jobs{state="leased"}
+        values: 0x8
+      - series: sentinelflow_control_audit_recovery_jobs{state="dead"}
+        values: 7x8
+      - series: sentinelflow_control_audit_latest_age_seconds
+        values: 601x8
+      - series: sentinelflow_control_dead_letters_unresolved{kind="audit_recovery"}
+        values: 0x8
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: SentinelFlowAuditRecoveryStalled
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: Required audit recovery work is stale or dead-lettered.
+
+  - name: resolved historical audit dead job stays quiet
+    interval: 1m
+    input_series:
+      - series: sentinelflow_control_audit_recovery_jobs{state="pending"}
+        values: 0x8
+      - series: sentinelflow_control_audit_recovery_jobs{state="retry"}
+        values: 0x8
+      - series: sentinelflow_control_audit_recovery_jobs{state="leased"}
+        values: 0x8
+      - series: sentinelflow_control_audit_recovery_jobs{state="dead"}
+        values: 7x8
+      - series: sentinelflow_control_audit_latest_age_seconds
+        values: 3600x8
+      - series: sentinelflow_control_dead_letters_unresolved{kind="audit_recovery"}
+        values: 0x8
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: SentinelFlowAuditRecoveryStalled
+        exp_alerts: []
+
+  - name: sse replay client telemetry and bounded capacity are actionable
+    interval: 1m
+    input_series:
+      - series: sentinelflow_control_sse_watermark_lag
+        values: 1x5
+      - series: sentinelflow_control_sse_clients_observable
+        values: 0x5
+      - series: sentinelflow_control_sse_clients
+        values: 230x5
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: SentinelFlowSSELedgerStale
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: The SSE replay ledger is behind its committed watermark.
+      - eval_time: 2m
+        alertname: SentinelFlowSSEClientObservabilityUnavailable
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: Authoritative SSE client cardinality is unavailable in the current runtime.
+      - eval_time: 3m
+        alertname: SentinelFlowSSEClientCapacity
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: Active SSE clients are at or above 230 of the bounded 256-client lease capacity.
