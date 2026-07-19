@@ -96,6 +96,21 @@ test('fast E2E excludes host OpenAI credentials and selects only the determinist
     /node "\$helper" check-compose "\$compose_config_file"/);
 });
 
+test('permission checks select a numeric stat format by operating-system family', () => {
+  const start = source.indexOf('file_mode() {');
+  const end = source.indexOf('\n}\n\nrun_bounded 30 docker info', start);
+  assert.ok(start >= 0 && end > start, 'portable permission helper is missing');
+  const helper = source.slice(start, end);
+  assert.match(helper, /case "\$\(uname -s\)" in/);
+  assert.match(helper, /Darwin\)\n\s+mode="\$\(stat -f '%Lp' "\$path"\)"/);
+  assert.match(helper, /Linux\)\n\s+mode="\$\(stat -c '%a' "\$path"\)"/);
+  assert.match(helper, /\^\[0-7\]\{3,4\}\$/);
+  assert.doesNotMatch(source, /stat -f '%Lp' "\$environment_file" 2>\/dev\/null \|\| stat -c/);
+  assert.match(source, /test "\$\(file_mode "\$environment_file"\)" = "600"/);
+  assert.match(source, /test "\$\(file_mode "\$secrets_directory"\)" = "700"/);
+  assert.match(source, /test "\$\(file_mode "\$capability"\)" = "400"/);
+});
+
 test('failure diagnostics capture only bounded detector and validationworker runtime state', () => {
   assert.match(source,
     /detection_diagnostic_validationworker_file="\$temp_root\/detection-diagnostic-validationworker\.json"/);
@@ -136,7 +151,7 @@ test('evidence-chain SQL is parsed on migrated PostgreSQL before the long covera
     'migrated PostgreSQL must parse the evidence SQL before the 305-second coverage wait');
 });
 
-test('control-plane recovery does not re-run one-shot migration services', () => {
+test('control-plane recovery does not re-run one-shot migration services or discard the Gateway namespace', () => {
   const outageStart = source.indexOf("printf '==> Proving control-plane outage");
   const restartStart = source.indexOf("printf '==> Restarting dispatcher", outageStart);
   const restartEnd = source.indexOf('\nexecutor_id=', restartStart);
@@ -145,6 +160,9 @@ test('control-plane recovery does not re-run one-shot migration services', () =>
   assert.match(recovery,
     /compose 360 up --no-deps --detach --wait --wait-timeout 240 --no-build \\\n\s+api detector validationworker lifecycleworker stubworker dispatcher/);
   assert.match(recovery,
-    /compose 360 up --no-deps --detach --wait --wait-timeout 240 --no-build \\\n\s+dispatcher executor gateway/);
+    /compose 360 up --no-deps --detach --wait --wait-timeout 240 --no-build \\\n\s+dispatcher executor/);
+  assert.match(recovery, /Restarting Gateway\n# would intentionally discard that namespace/);
+  assert.doesNotMatch(recovery, /restart --timeout 10 gateway/);
+  assert.doesNotMatch(recovery, /\sdispatcher executor gateway/);
   assert.doesNotMatch(recovery, /compose 360 up --detach --wait --wait-timeout 240 --no-build\n/);
 });

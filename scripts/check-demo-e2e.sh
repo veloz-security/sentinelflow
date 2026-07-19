@@ -96,7 +96,7 @@ if [[ "$browser_qa_runner" == true && "$browser_qa_hold_seen" != true ]]; then
   exit 2
 fi
 
-for command in docker go node curl mktemp cmp install cat mv; do
+for command in docker go node curl mktemp cmp install cat mv uname; do
   if ! command -v "$command" >/dev/null 2>&1; then
     printf 'ERROR: required command is unavailable: %s\n' "$command" >&2
     exit 1
@@ -113,6 +113,31 @@ run_bounded() {
   local timeout_seconds="$1"
   shift
   node "$helper" run-bounded --timeout-seconds "$timeout_seconds" -- "$@"
+}
+
+# BSD and GNU stat both return success for options intended for the other
+# implementation, but produce incompatible output. Select the format from the
+# operating-system family rather than relying on an exit-status fallback.
+file_mode() {
+  local path="$1"
+  local mode=""
+  case "$(uname -s)" in
+    Darwin)
+      mode="$(stat -f '%Lp' "$path")"
+      ;;
+    Linux)
+      mode="$(stat -c '%a' "$path")"
+      ;;
+    *)
+      printf 'ERROR: unsupported operating system for permission verification: %s\n' "$(uname -s)" >&2
+      return 1
+      ;;
+  esac
+  if [[ ! "$mode" =~ ^[0-7]{3,4}$ ]]; then
+    printf 'ERROR: unable to read a numeric permission mode for %s\n' "$path" >&2
+    return 1
+  fi
+  printf '%s\n' "$mode"
 }
 
 run_bounded 30 docker info >/dev/null
@@ -1001,14 +1026,14 @@ env -u SENTINELFLOW_ADMIN_PASSWORD \
     --output "$environment_file" \
     --secrets-dir "$secrets_directory" \
     --history-dir "$history_directory" >/dev/null
-test "$(stat -f '%Lp' "$environment_file" 2>/dev/null || stat -c '%a' "$environment_file")" = "600"
-test "$(stat -f '%Lp' "$secrets_directory" 2>/dev/null || stat -c '%a' "$secrets_directory")" = "700"
+test "$(file_mode "$environment_file")" = "600"
+test "$(file_mode "$secrets_directory")" = "700"
 analysis_activation="$secrets_directory/demo-history-analysis-activation.capability"
 validation_activation="$secrets_directory/demo-history-validation-activation.capability"
 for capability in "$analysis_activation" "$validation_activation"; do
   test -f "$capability"
   test ! -L "$capability"
-  test "$(stat -f '%Lp' "$capability" 2>/dev/null || stat -c '%a' "$capability")" = "400"
+  test "$(file_mode "$capability")" = "400"
   test "$(wc -c <"$capability" | tr -d ' ')" = "32"
 done
 activation_comparison=0
@@ -1264,12 +1289,17 @@ compose 360 up --no-deps --detach --wait --wait-timeout 240 --no-build \
   api detector validationworker lifecycleworker stubworker dispatcher
 printf 'PASS: Gateway behavior continued while the control plane was stopped; no new block appeared.\n'
 
-printf '==> Restarting dispatcher, executor, and Gateway for journal/DB reconciliation\n'
+printf '==> Restarting dispatcher and executor for journal/DB reconciliation\n'
+# The executor shares the live Gateway network namespace. Restarting Gateway
+# would intentionally discard that namespace and the native timeout element;
+# the lifecycle contract treats that early disappearance as failed rather than
+# silently re-adding it. This reconciliation probe therefore restarts only the
+# dispatcher and executor, proving persisted-journal recovery preserves the
+# existing element and cannot refresh its TTL.
 compose 60 restart --timeout 10 dispatcher >/dev/null
 compose 60 restart --timeout 10 executor >/dev/null
-compose 60 restart --timeout 10 gateway >/dev/null
 compose 360 up --no-deps --detach --wait --wait-timeout 240 --no-build \
-  dispatcher executor gateway
+  dispatcher executor
 executor_id="$(compose 30 ps --quiet executor)"
 postgres_id="$(compose 30 ps --quiet postgres)"
 sleep 3
