@@ -166,10 +166,15 @@ build_image() {
   local kind="$1"
   local dockerfile="$2"
   local tag="$3"
-  local oci_output="$temporary/work/$kind.$(basename "$tag").oci.tar"
+  # The Docker engine's `load` command accepts Docker archives on every
+  # supported CI runner.  BuildKit OCI layouts are valid outputs, but the
+  # Linux engine importer used by hosted CI does not consistently accept their
+  # index layout.  Keep the pinned BuildKit builder and timestamp rewrite, then
+  # export its equivalent Docker archive for the engine-side runtime probes.
+  local docker_output="$temporary/work/$kind.$(basename "$tag").docker.tar"
   local -a build_arguments
   build_arguments=(
-    --output "type=oci,dest=$oci_output,rewrite-timestamp=true"
+    --output "type=docker,dest=$docker_output,rewrite-timestamp=true"
     --pull
     --no-cache
     --provenance=false
@@ -182,8 +187,8 @@ build_image() {
     build_arguments+=(--build-arg VERSION=supply-chain-verification)
   fi
   docker buildx build "${build_arguments[@]}" "$context_snapshot"
-  docker load --input "$oci_output" >/dev/null
-  find "$oci_output" -delete
+  docker load --input "$docker_output" >/dev/null
+  find "$docker_output" -delete
   docker image inspect "$tag" >"$temporary/work/$kind.$(basename "$tag").inspect.json"
   node scripts/supply-chain-policy.mjs verify-image-inspection \
     "$kind" "$temporary/work/$kind.$(basename "$tag").inspect.json"
