@@ -117,7 +117,7 @@ test('failure diagnostics capture only bounded detector and validationworker run
   assert.match(source, /validationworker_id="\$\(compose 30 ps --quiet validationworker\)"/);
   assert.match(source, /test -n "\$validationworker_id"/);
   const captureStart = source.indexOf('capture_detection_diagnostics() {');
-  const captureEnd = source.indexOf('\nwait_for_cold_start_coverage() {', captureStart);
+  const captureEnd = source.indexOf('\n\n# This is called only when the release expiry convergence assertion fails.', captureStart);
   assert.ok(captureStart >= 0 && captureEnd > captureStart);
   const capture = source.slice(captureStart, captureEnd);
   const exactRuntimeFormat = /--format '\{"running":\{\{json \.State\.Running\}\},"restart_count":\{\{json \.RestartCount\}\}\}'/g;
@@ -128,6 +128,29 @@ test('failure diagnostics capture only bounded detector and validationworker run
   assert.match(capture,
     /--detector "\$detection_diagnostic_detector_file" \\\n\s+--validationworker "\$detection_diagnostic_validationworker_file" --stage "\$stage"/);
   assert.doesNotMatch(capture, /docker logs|\.Config\.Env|\.Id|container_id|inspect --format '\{\{'/);
+});
+
+test('expiry convergence failure emits a separate bounded lifecycle diagnostic without logs or secrets', () => {
+  assert.match(source, /expiry_diagnostic_sql_file="\$temp_root\/expiry-diagnostic\.sql"/);
+  assert.match(source, /node "\$helper" write-expiry-diagnostic-sql --output "\$expiry_diagnostic_sql_file"/);
+  const captureStart = source.indexOf('capture_expiry_diagnostics() {');
+  const captureEnd = source.indexOf('\nwait_for_cold_start_coverage() {', captureStart);
+  assert.ok(captureStart >= 0 && captureEnd > captureStart, 'expiry diagnostic capture function is missing');
+  const capture = source.slice(captureStart, captureEnd);
+  assert.match(capture, /print-expiry-action-id --state "\$e2e_state_file"/);
+  assert.match(capture, /--set="action_id=\$action_id"/);
+  assert.match(capture, /print-expiry-diagnostic "\$expiry_diagnostic_db_file"/);
+  assert.match(capture, /dispatcher_id/);
+  assert.match(capture, /executor_runtime_id/);
+  assert.match(capture, /lifecycleworker_id/);
+  assert.doesNotMatch(capture, /docker logs|\.Config\.Env|\.Id|container_id|capability_jcs|result_jcs|signature/);
+
+  const expiryInvocation = source.indexOf('current_stage="verify-expired"');
+  const captureInvocation = source.indexOf('capture_expiry_diagnostics', expiryInvocation);
+  assert.ok(expiryInvocation >= 0 && captureInvocation > expiryInvocation,
+    'expiry diagnostic must run only after verify-expired fails');
+  assert.match(source.slice(expiryInvocation, captureInvocation + 200),
+    /if ! run_bounded 180 node "\$helper" verify-expired/);
 });
 
 test('evidence-chain SQL is parsed on migrated PostgreSQL before the long coverage wait', () => {

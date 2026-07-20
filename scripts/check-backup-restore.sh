@@ -511,6 +511,44 @@ docker exec "$container" /recovery/sentinelflow-recovery-fixture terminal \
   --result-private-key /recovery/work/executor-result-private.pem \
   --result-public-key /recovery/work/executor-result-public.pem
 
+# M34's executor fixture must persist one complete execution-result-v2
+# read-back interval and bind the active action to that exact interval.  The
+# backup preflight is the last fail-closed boundary before an otherwise
+# restorable snapshot is sealed: a detached expiry row must reject the backup,
+# and restoring its exact lower/upper bounds must allow the normal backup path
+# below to proceed.
+v2_expiry_binding_count="$(docker exec "$container" psql --set=ON_ERROR_STOP=1 -U postgres \
+  -d sentinelflow_recovery_source -Atc "SELECT count(*) FROM sentinelflow.execution_results result JOIN sentinelflow.execution_result_readback_bounds_000034 readback ON readback.result_id = result.result_id JOIN sentinelflow.enforcement_expiry_bounds_000034 expiry ON expiry.source_result_id = result.result_id AND expiry.action_id = result.action_id JOIN sentinelflow.enforcement_actions action ON action.action_id = expiry.action_id WHERE result.schema_version = 'execution-result-v2' AND result.operation = 'add' AND result.classification IN ('applied', 'recovered_active') AND readback.remaining_ttl_seconds IS NOT NULL AND expiry.expires_not_before = readback.expires_not_before AND expiry.expires_not_after = readback.expires_not_after AND action.applied_at = readback.readback_started_at AND action.expected_expires_at = readback.expires_not_before")"
+[[ "$v2_expiry_binding_count" == "1" ]] || fail "terminal fixture did not create one bound execution-result-v2 action: count=$v2_expiry_binding_count"
+
+# Shift only the copied action upper bound.  This remains type/constraint-valid
+# SQL, so the regression proves the backup's semantic preflight instead of a
+# table constraint rejects detached v2 evidence.
+docker exec "$container" psql --set=ON_ERROR_STOP=1 -U postgres \
+  -d sentinelflow_recovery_source --command "UPDATE sentinelflow.enforcement_expiry_bounds_000034 expiry SET expires_not_after = expiry.expires_not_after + interval '1 second' FROM sentinelflow.execution_results result WHERE expiry.source_result_id = result.result_id AND result.schema_version = 'execution-result-v2' AND result.operation = 'add' AND result.classification IN ('applied', 'recovered_active')" >/dev/null
+if docker exec \
+  --env PGUSER=postgres \
+  --env RECOVERY_TOOL=/recovery/sentinelflow-recoverytool \
+  "$container" /repo/scripts/backup-state.sh \
+    --database sentinelflow_recovery_source \
+    --journal /recovery/work/replay.json \
+    --output /recovery/work/detached-v2-expiry-rejected-bundle \
+    --signing-key /recovery/work/backup-signing-private.pem \
+    --dispatch-public-key /recovery/work/dispatcher-capability-public.pem \
+    --result-public-key /recovery/work/executor-result-public.pem >/dev/null 2>&1; then
+  fail 'backup accepted detached execution-result-v2 expiry bounds'
+fi
+docker exec "$container" test ! -e /recovery/work/detached-v2-expiry-rejected-bundle
+
+# Restore only from the signed-result read-back row, never from a shell-side
+# timestamp approximation.  The later successful backup exercises acceptance
+# of this exact v2 fixture after the preflight rejection.
+docker exec "$container" psql --set=ON_ERROR_STOP=1 -U postgres \
+  -d sentinelflow_recovery_source --command "UPDATE sentinelflow.enforcement_expiry_bounds_000034 expiry SET expires_not_before = readback.expires_not_before, expires_not_after = readback.expires_not_after FROM sentinelflow.execution_result_readback_bounds_000034 readback WHERE expiry.source_result_id = readback.result_id AND expiry.expires_not_after IS DISTINCT FROM readback.expires_not_after" >/dev/null
+v2_expiry_binding_count="$(docker exec "$container" psql --set=ON_ERROR_STOP=1 -U postgres \
+  -d sentinelflow_recovery_source -Atc "SELECT count(*) FROM sentinelflow.execution_results result JOIN sentinelflow.execution_result_readback_bounds_000034 readback ON readback.result_id = result.result_id JOIN sentinelflow.enforcement_expiry_bounds_000034 expiry ON expiry.source_result_id = result.result_id AND expiry.action_id = result.action_id JOIN sentinelflow.enforcement_actions action ON action.action_id = expiry.action_id WHERE result.schema_version = 'execution-result-v2' AND result.operation = 'add' AND result.classification IN ('applied', 'recovered_active') AND readback.remaining_ttl_seconds IS NOT NULL AND expiry.expires_not_before = readback.expires_not_before AND expiry.expires_not_after = readback.expires_not_after AND action.applied_at = readback.readback_started_at AND action.expected_expires_at = readback.expires_not_before")"
+[[ "$v2_expiry_binding_count" == "1" ]] || fail "valid execution-result-v2 expiry bounds were not restored: count=$v2_expiry_binding_count"
+
 # Sequence values are non-MVCC state. The dedicated sequence fence must block
 # direct nextval until the hidden bundle is sealed and atomically published.
 sequence_state_before="$(docker exec "$container" psql -U postgres -d sentinelflow_recovery_source -Atc "SELECT last_value::text || '|' || is_called::text FROM sentinelflow.audit_events_sequence_seq")"

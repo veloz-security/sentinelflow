@@ -3,6 +3,7 @@ package executor
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/devwooops/sentinelflow/internal/enforcement/capability"
 	"github.com/devwooops/sentinelflow/internal/enforcement/journal"
@@ -48,7 +49,7 @@ func (s *Service) execute(
 				preflight, capability.ResultErrorDeadlineExceeded))
 		}
 		if preflight.State == capability.ReadbackAbsent {
-			return s.finish(ctx, started, permit, revokedResult(value, capability.NFTExitNotInvoked))
+			return s.finish(ctx, started, permit, revokedResult(value, capability.NFTExitNotInvoked, preflight))
 		}
 		mutation := Mutation{operation: capability.OperationRevoke, stdin: executable.CanonicalDelete()}
 		outcome, runErr := s.runner.Mutate(ctx, mutation)
@@ -57,11 +58,14 @@ func (s *Service) execute(
 		result := revokeResult(value, exit, observation, inspectErr)
 		return s.finish(ctx, started, permit, result)
 	case capability.OperationInspect:
+		// Inspect is read-only. Take the fixed read-back even when the permit
+		// has just expired so a fresh, signed terminal result still binds its
+		// read-back window; it never releases mutation authority.
+		observation, inspectErr := s.inspect(ctx, inspectionFor(value), 0)
 		if _, err := permit.TakeInspectAt(now); err != nil {
 			return s.finish(ctx, started, permit, terminalFailure(value, capability.NFTExitNotInvoked,
-				unavailableObservation(inspectionFor(value)), capability.ResultErrorDeadlineExceeded))
+				observation, capability.ResultErrorDeadlineExceeded))
 		}
-		observation, inspectErr := s.inspect(ctx, inspectionFor(value), 0)
 		result := inspectResult(ctx, value, observation, inspectErr)
 		return s.finish(ctx, started, permit, result)
 	default:
@@ -118,11 +122,14 @@ func (s *Service) recover(ctx context.Context, outcome journal.Outcome) (capabil
 }
 
 func (s *Service) inspect(ctx context.Context, request Inspection, maximumTTL uint64) (Observation, error) {
+	readbackStartedAt := s.now()
 	observation, err := s.runner.Inspect(ctx, request)
+	readbackCompletedAt := s.now()
 	if err != nil {
-		return unavailableObservation(request), reject(classifyRunnerContext(ctx))
+		return withReadbackWindow(unavailableObservation(request), readbackStartedAt, readbackCompletedAt), reject(classifyRunnerContext(ctx))
 	}
 	checked, valid := validateObservation(observation, request, maximumTTL)
+	checked = withReadbackWindow(checked, readbackStartedAt, readbackCompletedAt)
 	if !valid {
 		return checked, reject(ErrorTargetState)
 	}
@@ -168,7 +175,16 @@ func (s *Service) finish(
 	result capability.Result,
 ) (capability.SignedResult, error) {
 	result.StartedAt = started.ReceivedAt
+	if !resultReadbackStartedAt(result).IsZero() && resultReadbackStartedAt(result).Before(result.StartedAt) {
+		// Add/revoke preflight occurs before journal Begin. The result must
+		// still attest the real read-back interval rather than silently moving
+		// it to the later journal timestamp.
+		result.StartedAt = resultReadbackStartedAt(result)
+	}
 	result.CompletedAt = s.now()
+	if !resultReadbackCompletedAt(result).IsZero() && resultReadbackCompletedAt(result).After(result.CompletedAt) {
+		result.CompletedAt = resultReadbackCompletedAt(result)
+	}
 	if (ctx != nil && ctx.Err() != nil) || result.CompletedAt.After(started.DeadlineAt) {
 		// A runner that ignores cancellation cannot turn a late mutation or
 		// read-back into success. Preserve the observed state but attest only an
@@ -189,6 +205,7 @@ func (s *Service) finishPrepared(
 		return capability.SignedResult{}, reject(ErrorResult)
 	}
 	value := authority.Value()
+	result.SchemaVersion = capability.ResultV2SchemaVersion
 	result.ResultID = identifier
 	result.CapabilityID = value.CapabilityID
 	result.CapabilityDigest = started.CapabilityDigest
@@ -218,7 +235,8 @@ func (s *Service) finishPrepared(
 
 func baseResult(value capability.Value) capability.Result {
 	return capability.Result{
-		Operation: value.Operation, ReadbackState: capability.ReadbackUnavailable,
+		SchemaVersion: capability.ResultV2SchemaVersion,
+		Operation:     value.Operation, ReadbackState: capability.ReadbackUnavailable,
 		Classification: capability.ClassificationIndeterminate, ErrorCode: capability.ResultErrorIndeterminate,
 	}
 }
@@ -291,9 +309,10 @@ func revokeResult(value capability.Value, exit capability.NFTExitClass, observat
 	return result
 }
 
-func revokedResult(value capability.Value, exit capability.NFTExitClass) capability.Result {
+func revokedResult(value capability.Value, exit capability.NFTExitClass, observation Observation) capability.Result {
 	result := baseResult(value)
 	result.NFTExitClass = pointer(exit)
+	applyReadbackWindow(&result, observation)
 	result.ReadbackState = capability.ReadbackAbsent
 	result.Classification = capability.ClassificationRevoked
 	result.ErrorCode = capability.ResultErrorNone
@@ -372,11 +391,13 @@ func terminalFailure(value capability.Value, exit capability.NFTExitClass, obser
 	// Preflight state is enough to explain a non-invoked failure. Do not bind
 	// handle/TTL values that were not produced by this capability's mutation.
 	result.ReadbackState = observation.State
+	applyReadbackWindow(&result, observation)
 	return result
 }
 
 func applyObservation(result *capability.Result, observation Observation) {
 	result.ReadbackState = observation.State
+	applyReadbackWindow(result, observation)
 	if observation.State != capability.ReadbackActive {
 		result.ElementHandle = nil
 		result.RemainingTTLSeconds = nil
@@ -387,6 +408,36 @@ func applyObservation(result *capability.Result, observation Observation) {
 	// retained as an explicit null and must never contain the set handle.
 	result.ElementHandle = nil
 	result.RemainingTTLSeconds = &ttl
+}
+
+func applyReadbackWindow(result *capability.Result, observation Observation) {
+	if observation.readbackStartedAt.IsZero() || observation.readbackCompletedAt.IsZero() {
+		return
+	}
+	startedAt := observation.readbackStartedAt
+	completedAt := observation.readbackCompletedAt
+	result.ReadbackStartedAt = &startedAt
+	result.ReadbackCompletedAt = &completedAt
+}
+
+func withReadbackWindow(observation Observation, startedAt, completedAt time.Time) Observation {
+	observation.readbackStartedAt = startedAt
+	observation.readbackCompletedAt = completedAt
+	return observation
+}
+
+func resultReadbackStartedAt(result capability.Result) time.Time {
+	if result.ReadbackStartedAt == nil {
+		return time.Time{}
+	}
+	return *result.ReadbackStartedAt
+}
+
+func resultReadbackCompletedAt(result capability.Result) time.Time {
+	if result.ReadbackCompletedAt == nil {
+		return time.Time{}
+	}
+	return *result.ReadbackCompletedAt
 }
 
 func pointer(value capability.NFTExitClass) *capability.NFTExitClass { return &value }

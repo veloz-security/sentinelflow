@@ -2,6 +2,7 @@ package executor
 
 import (
 	"context"
+	"time"
 
 	"github.com/devwooops/sentinelflow/internal/enforcement/capability"
 	"github.com/devwooops/sentinelflow/internal/enforcement/nftcheck"
@@ -60,7 +61,7 @@ func (i Inspection) String() string   { return "executor fixed nft inspection [r
 func (i Inspection) GoString() string { return i.String() }
 
 // MutationOutcome contains only the bounded process classification needed by
-// execution-result-v1. Raw stdout, stderr, argv, environment, and command text
+// execution-result-v2. Raw stdout, stderr, argv, environment, and command text
 // are intentionally not representable.
 type MutationOutcome struct {
 	ExitClass capability.NFTExitClass
@@ -76,6 +77,12 @@ type Observation struct {
 	TargetIPv4          string
 	OwnedSchemaDigest   string
 	RemainingTTLSeconds uint64
+
+	// The Runner cannot provide lifecycle timestamps. Service writes these
+	// private fields immediately around its fixed Runner.Inspect call so the
+	// executor, rather than an OS adapter, binds the read-back window.
+	readbackStartedAt   time.Time
+	readbackCompletedAt time.Time
 }
 
 // Runner is the entire OS-facing authority of Service. Mutate MUST invoke

@@ -329,7 +329,7 @@ BEGIN
       capability.artifact_digest <> sentinelflow.hil_sha256(capability.artifact) OR
       capability.capability_digest <> sentinelflow.hil_sha256(capability.capability_jcs) OR
       capability.consumed_at IS DISTINCT FROM result.completed_at OR
-      result.schema_version <> 'execution-result-v1' OR
+      result.schema_version NOT IN ('execution-result-v1', 'execution-result-v2') OR
       result.capability_digest IS DISTINCT FROM capability.capability_digest OR
       result.operation IS DISTINCT FROM capability.operation OR
       result.action_id IS DISTINCT FROM capability.action_id OR
@@ -409,6 +409,32 @@ BEGIN
 
   IF EXISTS (
     SELECT 1
+    FROM sentinelflow.enforcement_expiry_bounds_000034 action_bounds
+    JOIN sentinelflow.enforcement_actions action
+      ON action.action_id = action_bounds.action_id
+    JOIN sentinelflow.execution_results source_result
+      ON source_result.result_id = action_bounds.source_result_id
+    LEFT JOIN sentinelflow.execution_result_readback_bounds_000034 source_bounds
+      ON source_bounds.result_id = source_result.result_id
+    WHERE source_result.schema_version <> 'execution-result-v2' OR
+      source_result.operation <> 'add' OR
+      source_result.action_id <> action_bounds.action_id OR
+      source_result.classification NOT IN ('applied', 'recovered_active') OR
+      source_bounds.result_id IS NULL OR
+      source_bounds.remaining_ttl_seconds IS NULL OR
+      source_bounds.remaining_ttl_seconds IS DISTINCT FROM source_result.remaining_ttl_seconds OR
+      source_bounds.expires_not_before IS NULL OR source_bounds.expires_not_after IS NULL OR
+      action_bounds.expires_not_before IS DISTINCT FROM source_bounds.expires_not_before OR
+      action_bounds.expires_not_after IS DISTINCT FROM source_bounds.expires_not_after OR
+      action.applied_at IS DISTINCT FROM source_bounds.readback_started_at OR
+      action.expected_expires_at IS DISTINCT FROM source_bounds.expires_not_before
+  ) THEN
+    RAISE EXCEPTION USING ERRCODE = '55000',
+      MESSAGE = 'expiry bounds are detached from their signed active result';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
     FROM sentinelflow.execution_capabilities capability
     CROSS JOIN LATERAL (
       SELECT convert_from(capability.capability_jcs, 'UTF8')::jsonb AS value
@@ -446,8 +472,15 @@ BEGIN
     CROSS JOIN LATERAL (
       SELECT convert_from(result.result_jcs, 'UTF8')::jsonb AS value
     ) document
+    LEFT JOIN sentinelflow.execution_result_readback_bounds_000034 result_readback_bounds
+      ON result_readback_bounds.result_id = result.result_id
     WHERE jsonb_typeof(document.value) <> 'object' OR
-      (SELECT count(*) FROM jsonb_object_keys(document.value)) <> 18 OR
+      (SELECT count(*) FROM jsonb_object_keys(document.value)) <>
+        CASE result.schema_version
+          WHEN 'execution-result-v1' THEN 18
+          WHEN 'execution-result-v2' THEN 20
+          ELSE -1
+        END OR
       document.value->>'schema_version' <> result.schema_version OR
       document.value->>'result_id' <> result.result_id::text OR
       document.value->>'capability_id' <> result.capability_id::text OR
@@ -465,6 +498,19 @@ BEGIN
         coalesce(to_jsonb(result.remaining_ttl_seconds), 'null'::jsonb) OR
       document.value->>'owned_schema_digest' <> result.owned_schema_digest::text OR
       (document.value->>'started_at')::timestamptz <> result.started_at OR
+      CASE result.schema_version
+        WHEN 'execution-result-v1' THEN
+          document.value ? 'readback_started_at' OR document.value ? 'readback_completed_at' OR
+          result_readback_bounds.result_id IS NOT NULL
+        WHEN 'execution-result-v2' THEN
+          result_readback_bounds.result_id IS NULL OR
+          result_readback_bounds.remaining_ttl_seconds IS DISTINCT FROM result.remaining_ttl_seconds OR
+          (document.value->>'readback_started_at')::timestamptz <>
+            result_readback_bounds.readback_started_at OR
+          (document.value->>'readback_completed_at')::timestamptz <>
+            result_readback_bounds.readback_completed_at
+        ELSE true
+      END OR
       (document.value->>'completed_at')::timestamptz <> result.completed_at OR
       (document.value->>'journal_sequence')::bigint <> result.journal_sequence OR
       document.value->>'error_code' <> result.error_code

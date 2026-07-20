@@ -130,7 +130,10 @@ func TestRunnerCannotManufactureSuccessAfterJournalDeadline(t *testing.T) {
 	var calls int
 	f.service.clock = func() time.Time {
 		calls++
-		if calls < 4 {
+		// The executor now samples immediately before and after both fixed
+		// read-backs. Keep the journal deadline test focused on the final
+		// signing time rather than on an incidental clock-call count.
+		if calls < 8 {
 			return f.base
 		}
 		return f.base.Add(1500 * time.Millisecond)

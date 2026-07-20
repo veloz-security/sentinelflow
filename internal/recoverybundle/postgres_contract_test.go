@@ -51,6 +51,8 @@ func TestPostgreSQLContractsCoverCacheAndMissingOperations(t *testing.T) {
 		"sentinelflow.demo_history_runtime_activations",
 		"sentinelflow.demo_history_runtime_capability_expectation",
 		"sentinelflow.demo_history_runtime_uses",
+		"sentinelflow.enforcement_expiry_bounds_000034",
+		"sentinelflow.execution_result_readback_bounds_000034",
 	} {
 		if !strings.Contains(rows, relation+"\tr\tp\tfalse\t-") {
 			t.Fatalf("trusted relation contract omits %s", relation)

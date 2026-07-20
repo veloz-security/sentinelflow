@@ -5,10 +5,12 @@ import "time"
 const (
 	CapabilitySchemaVersion = "execution-capability-v1"
 	ResultSchemaVersion     = "execution-result-v1"
+	ResultV2SchemaVersion   = "execution-result-v2"
 	InspectSchemaVersion    = "nft-inspect-v1"
 
 	CapabilitySigningDomain = "sentinelflow execution-capability-v1"
 	ResultSigningDomain     = "sentinelflow execution-result-v1"
+	ResultV2SigningDomain   = "sentinelflow execution-result-v2"
 
 	MaxCapabilityBytes = 8 * 1024
 	MaxArtifactBytes   = 4 * 1024
@@ -248,6 +250,9 @@ const (
 // error classifications only; stdout, stderr, command text, and secrets have
 // no representable field.
 type Result struct {
+	// SchemaVersion is v1 when omitted for backwards-compatible historical
+	// fixtures. New executor output MUST be execution-result-v2.
+	SchemaVersion       string
 	ResultID            string
 	CapabilityID        string
 	CapabilityDigest    string
@@ -262,12 +267,17 @@ type Result struct {
 	RemainingTTLSeconds *uint64
 	OwnedSchemaDigest   string
 	StartedAt           time.Time
+	// ReadbackStartedAt and ReadbackCompletedAt bracket the executor's fixed
+	// nft list-set call. They are executor-signed observations, not
+	// dispatcher-provided lifecycle timestamps.
+	ReadbackStartedAt   *time.Time
+	ReadbackCompletedAt *time.Time
 	CompletedAt         time.Time
 	JournalSequence     uint64
 	ErrorCode           ResultErrorCode
 }
 
-// ResultValue is an immutable copy of execution-result-v1.
+// ResultValue is an immutable copy of a versioned executor result.
 type ResultValue = Result
 
 type CheckedResult struct {
@@ -331,6 +341,14 @@ func cloneResultValue(value ResultValue) ResultValue {
 	if value.RemainingTTLSeconds != nil {
 		copyValue := *value.RemainingTTLSeconds
 		result.RemainingTTLSeconds = &copyValue
+	}
+	if value.ReadbackStartedAt != nil {
+		copyValue := *value.ReadbackStartedAt
+		result.ReadbackStartedAt = &copyValue
+	}
+	if value.ReadbackCompletedAt != nil {
+		copyValue := *value.ReadbackCompletedAt
+		result.ReadbackCompletedAt = &copyValue
 	}
 	return result
 }

@@ -130,6 +130,8 @@ type executionArtifactResult struct {
 	RemainingTTLSeconds *uint64 `json:"remaining_ttl_seconds"`
 	OwnedSchemaDigest   string  `json:"owned_schema_digest"`
 	StartedAt           string  `json:"started_at"`
+	ReadbackStartedAt   *string `json:"readback_started_at"`
+	ReadbackCompletedAt *string `json:"readback_completed_at"`
 	CompletedAt         string  `json:"completed_at"`
 	JournalSequence     uint64  `json:"journal_sequence"`
 	ErrorCode           string  `json:"error_code"`
@@ -499,7 +501,7 @@ func validateExecutionArtifactRow(
 	completedAt, completedOK := parseDatabaseTime(row.Result.CompletedAt)
 	persistedAt, persistedOK := parseDatabaseTime(row.Result.PersistedAt)
 	if !startedOK || !completedOK || !persistedOK ||
-		row.Result.ResultID != result.ResultID || row.Result.SchemaVersion != capability.ResultSchemaVersion ||
+		row.Result.ResultID != result.ResultID || row.Result.SchemaVersion != result.SchemaVersion ||
 		row.Result.CapabilityID != result.CapabilityID || row.Result.CapabilityDigest != result.CapabilityDigest ||
 		row.Result.Operation != string(result.Operation) || row.Result.ActionID != result.ActionID ||
 		row.Result.ArtifactDigest != result.ArtifactDigest || row.Result.TargetIPv4 != result.TargetIPv4 ||
@@ -513,6 +515,22 @@ func validateExecutionArtifactRow(
 		row.Result.JournalSequence != result.JournalSequence || row.Result.ErrorCode != string(result.ErrorCode) ||
 		row.Result.Digest != verifiedResult.Digest() || !consumedAt.Equal(result.CompletedAt) ||
 		persistedAt.Before(result.CompletedAt) || jobUpdatedAt.Before(result.CompletedAt) {
+		return reject(CodeContents)
+	}
+	if result.SchemaVersion == capability.ResultV2SchemaVersion {
+		if row.Result.ReadbackStartedAt == nil || row.Result.ReadbackCompletedAt == nil ||
+			result.ReadbackStartedAt == nil || result.ReadbackCompletedAt == nil {
+			return reject(CodeContents)
+		}
+		readbackStartedAt, readbackStartedOK := parseDatabaseTime(*row.Result.ReadbackStartedAt)
+		readbackCompletedAt, readbackCompletedOK := parseDatabaseTime(*row.Result.ReadbackCompletedAt)
+		if !readbackStartedOK || !readbackCompletedOK ||
+			!readbackStartedAt.Equal(*result.ReadbackStartedAt) ||
+			!readbackCompletedAt.Equal(*result.ReadbackCompletedAt) {
+			return reject(CodeContents)
+		}
+	} else if result.SchemaVersion != capability.ResultSchemaVersion ||
+		row.Result.ReadbackStartedAt != nil || row.Result.ReadbackCompletedAt != nil {
 		return reject(CodeContents)
 	}
 	if row.SchemaVersion == executionArtifactRowVersionV2 {

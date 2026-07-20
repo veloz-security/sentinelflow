@@ -326,8 +326,8 @@ func (s *PostgreSQLStore) PersistResult(
 	if err := requireLiveLease(ctx, tx, persisted.claim); err != nil {
 		return PersistedResult{}, err
 	}
-	var ignored string
-	err = tx.QueryRow(ctx, recordResultSQL,
+	query := recordResultSQL
+	arguments := []any{
 		value.ResultID, persisted.claim.job.jobID, persisted.claim.leaseToken,
 		value.CapabilityID, value.CapabilityDigest, string(value.Operation),
 		value.ActionID, value.ArtifactDigest, value.TargetIPv4,
@@ -336,7 +336,21 @@ func (s *PostgreSQLStore) PersistResult(
 		value.OwnedSchemaDigest, value.StartedAt, value.CompletedAt,
 		int64(value.JournalSequence), string(value.ErrorCode),
 		verified.CanonicalBytes(), verified.Digest(), signed.Signature(),
-	).Scan(&ignored)
+	}
+	switch value.SchemaVersion {
+	case capability.ResultSchemaVersion:
+		// The durable v1 replay route remains byte-for-byte compatible.
+	case capability.ResultV2SchemaVersion:
+		if value.ReadbackStartedAt == nil || value.ReadbackCompletedAt == nil {
+			return PersistedResult{}, ErrContractRejected
+		}
+		query = recordResultV2SQL
+		arguments = append(arguments, *value.ReadbackStartedAt, *value.ReadbackCompletedAt)
+	default:
+		return PersistedResult{}, ErrContractRejected
+	}
+	var ignored string
+	err = tx.QueryRow(ctx, query, arguments...).Scan(&ignored)
 	if err != nil {
 		return PersistedResult{}, classifyDatabaseError(err)
 	}

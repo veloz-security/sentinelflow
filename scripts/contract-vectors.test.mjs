@@ -24,6 +24,11 @@ const assertionsSchemaPath = join(
   "enforcement",
   "demo_history_public_assertions_v1.schema.json",
 );
+const executionResultV2SchemaPath = join(
+  contractsRoot,
+  "enforcement",
+  "execution_result_v2.schema.json",
+);
 
 const readJSON = (path) => JSON.parse(readFileSync(path, "utf8"));
 const sha256 = (bytes) =>
@@ -271,6 +276,45 @@ test("analysis-summary-v1 vectors enforce truthful provider and state provenance
   assert.match(vector.no_call_semantics, /does not emit latest_analysis/);
 });
 
+test("execution-result-v2 vectors bind a signed read-back observation interval", () => {
+  const bundle = readJSON(bundlePath);
+  const schema = readJSON(executionResultV2SchemaPath);
+  const names = [
+    "execution_result_applied_v2",
+    "execution_result_recovered_active_v2",
+    "execution_result_revoked_v2",
+    "execution_result_inspect_absent_v2",
+  ];
+  for (const name of names) {
+    const vector = bundle.vectors[name];
+    assert.equal(vector.vector_name, name.replaceAll("_", "-"));
+    assert.equal(schemaMatches(vector.payload, schema), true, name);
+    const payload = vector.payload;
+    assert.equal(payload.schema_version, "execution-result-v2");
+    assert.ok(Date.parse(payload.started_at) <= Date.parse(payload.readback_started_at), name);
+    assert.ok(
+      Date.parse(payload.readback_started_at) <= Date.parse(payload.readback_completed_at),
+      name,
+    );
+    assert.ok(
+      Date.parse(payload.readback_completed_at) <= Date.parse(payload.completed_at),
+      name,
+    );
+    const signingInput = Buffer.from(vector.signing_input_b64url, "base64url");
+    assert.ok(
+      signingInput.subarray(0, signingInput.indexOf(0x0a)).equals(
+        Buffer.from("sentinelflow execution-result-v2", "utf8"),
+      ),
+      `${name} signing domain`,
+    );
+    const v1Input = Buffer.concat([
+      Buffer.from("sentinelflow execution-result-v1\\n", "utf8"),
+      Buffer.from(vector.digest.slice("sha256:".length), "hex"),
+    ]);
+    assert.notDeepEqual(signingInput, v1Input, `${name} must not use the v1 domain`);
+  }
+});
+
 test("public demo-history assertions bind exact public proof and forbid authority fields", () => {
   const bundle = readJSON(bundlePath);
   const schema = readJSON(assertionsSchemaPath);
@@ -366,6 +410,10 @@ test("independent crypto and frame checks reproduce existing vector bytes", () =
         "execution_result_recovered_active_v1",
         "execution_result_revoked_v1",
         "execution_result_inspect_absent_v1",
+        "execution_result_applied_v2",
+        "execution_result_recovered_active_v2",
+        "execution_result_revoked_v2",
+        "execution_result_inspect_absent_v2",
       ],
     },
     {

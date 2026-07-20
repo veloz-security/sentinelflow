@@ -23,7 +23,7 @@
 - **채택됨 — 구현 검증 필요**: README 또는 명시적 project-owner decision이 principle, contract 또는 trust boundary를 확정했다. 코드와 test로 준수 여부를 확인해야 한다.
 - **제안됨**: README가 `planned`, `intended`, `expected`, `target` 등으로 설명했다. 구현 과정에서 변경될 수 있다.
 - **미결**: README만으로 선택할 수 없는 상세다. 이 문서에서 임의로 확정하지 않는다.
-- **대체됨**: 후속 ADR이 결정 전체 또는 명시된 일부를 변경할 때 사용한다. ADR-010은 ADR-003과 ADR-004의 명령 생성 경계만 대체하며, ADR-011은 optional adapter와 공통 정규화를 유지한 채 log-first primary-ingress 가정만 대체하고, ADR-012는 ADR-006·ADR-010·ADR-011에서 명시한 executor authority 및 recovery reapplication mechanics만 대체하며 compatible edge와 delivery contract는 축소하거나 완성한다.
+- **대체됨**: 후속 ADR이 결정 전체 또는 명시된 일부를 변경할 때 사용한다. ADR-010은 ADR-003과 ADR-004의 명령 생성 경계만 대체하며, ADR-011은 optional adapter와 공통 정규화를 유지한 채 log-first primary-ingress 가정만 대체하고, ADR-012는 ADR-006·ADR-010·ADR-011에서 명시한 executor authority 및 recovery reapplication mechanics만 대체하며 compatible edge와 delivery contract는 축소하거나 완성한다. ADR-014는 ADR-012 lifecycle reconciliation이 사용하는 expiry-time 해석과 result-attestation version만 구체화한다.
 
 ## 2. 결정 목록
 
@@ -42,6 +42,7 @@
 | [ADR-011](#adr-011-data-plane과-control-plane을-분리한-gateway-first-hybrid-architecture를-채택한다) | Gateway-first hybrid data/control-plane 분리 | Accepted(채택됨) — edge/delivery mechanics는 ADR-012가 구체화하고 executor-authority clause는 대체 | FR-022~FR-026, NFR-001~NFR-002, NFR-012~NFR-014 |
 | [ADR-012](#adr-012-gateway-edge-delivery-once-only-enforcement-protocol을-확정한다) | Gateway edge, delivery integrity, exact AI/HIL contract 및 once-only enforcement protocol | Accepted(채택됨) — 구현 증거 존재, integrated release 검증 미완료 | FR-008~FR-016, FR-020~FR-026, NFR-001~NFR-003, NFR-006~NFR-009, NFR-012~NFR-014 |
 | [ADR-013](#adr-013-renewable-worker-privilege-없이-demo-history-authority를-stage하고-expire한다) | Staged non-renewable signed demo-history authority | Accepted(채택됨) — targeted implementation evidence 존재, release 검증 미완료 | FR-012, FR-020, NFR-001~NFR-002, NFR-006, NFR-008~NFR-011 |
+| [ADR-014](#adr-014-signed-read-back-interval에-expiry-lifecycle을-바인딩한다) | Signed read-back interval 및 bounded expiry lifecycle | Accepted(채택됨) — 구현 및 release 검증 필요 | FR-014~FR-016, NFR-001~NFR-003, NFR-006~NFR-009 |
 
 FR/NFR 식별자는 [`PRD.ko.md`](PRD.ko.md)의 기능·비기능 요구사항을 기준으로 한다. 범위 표기 `FR-005~FR-007`은 두 끝을 포함한 연속 ID 전체를 뜻한다.
 
@@ -154,7 +155,7 @@ Schema versioning, timestamp normalization, deduplication key, masking, access c
 6. Request는 reasoning `medium`, `store: false`, strict Structured Outputs `text.format`, no tools 및 output 최대 2,048 token을 사용한다. Attempt 하나의 timeout은 30초이고 classified `408`/`409`/`429`/`5xx` transient error retry는 한 번만 허용한다. Worker concurrency 기본값은 analysis 2개이고 configurable demo operator budget 기본값은 UTC day당 USD 10이다. 이는 API price claim이 아닌 operator guardrail이다.
 7. Refusal, incomplete output, timeout/retry exhaustion, schema failure, invalid evidence reference 또는 operator-budget exhaustion은 `budget_exhausted` 같은 typed reason이 있는 유일한 non-enforcing `analysis_failed` state를 만든다. Deterministic evidence는 유지되고 failed analysis는 enforcement artifact를 진행할 수 없다.
 
-Request/response 및 schema version은 compatibility boundary다. Model, prompt, schema, limit, timeout 또는 retry 변경 시 contract test와 문서 갱신이 필요하다. 구현은 공식 [`gpt-5.6-sol` model page](https://developers.openai.com/api/docs/models/gpt-5.6-sol), [model catalog](https://developers.openai.com/api/docs/models) 및 [Structured Outputs guide](https://developers.openai.com/api/docs/guides/structured-outputs)를 따른다. Opt-in smoke command는 존재하지만 live billable result는 아직 release evidence가 아니다.
+Request/response 및 schema version은 compatibility boundary다. Model, prompt, schema, limit, timeout 또는 retry 변경 시 contract test와 문서 갱신이 필요하다. 구현은 공식 [`gpt-5.6-sol` model page](https://developers.openai.com/api/docs/models/gpt-5.6-sol), [model catalog](https://developers.openai.com/api/docs/models) 및 [Structured Outputs guide](https://developers.openai.com/api/docs/guides/structured-outputs)를 따른다. Opt-in smoke command는 synthetic `path_scan`에 대한 `openai_responses`/`gpt-5.6-sol`의 1회 검증된 billable·non-mutating result가 있다. 이는 여전히 enforcement를 authorize하지 않는 bounded contract probe일 뿐이다.
 
 ### 대안
 
@@ -304,7 +305,7 @@ RFC 5737 documentation range는 normal profile에서 보호한다. Isolated demo
 
 ### 상태
 
-**채택됨 — 구현 증거 존재, release 검증 미완료.** v0.1 stack과 top-level process/module boundary를 구현했다. 88-package backend gate와 PostgreSQL 17.10 33-migration/72-table verifier의 final root rerun, API-only validation-attempt projection, production-CSP Chromium gate를 포함한 현재 frontend unit 39-file/363-test suite, 여러 isolated runtime gate 및 이전에 완료한 supply-chain/image gate의 local evidence가 있다. RUN25 fast는 mutation/outage/restart path를 다뤘고 이후 macOS `--run-browser-qa` 실행은 revoked phase의 고정 61초 pre-hash login-window 대기와 함께 active/revoked browser QA를 통과했다. Commit `d66c4b8a4842ad4226cb741e35331ba5b9068520`의 외부 clean clone도 `make check`를 통과했고 hosted CI run `29696139988`은 implementation checkpoint `5ef870155bc59e6ac3c30279a7cd8be8d0249887`에서 10개 shard를 모두 통과했다. Default native expiry, native host-ruleset, live OpenAI 및 4-GB performance gate는 open이다.
+**채택됨 — 구현 증거 존재, release 검증 미완료.** v0.1 stack과 top-level process/module boundary를 구현했다. Current-tree Linux native v6 E2E는 실제 kernel expiry, signed absent inspection, audit/recovery/forwarding convergence 및 cleanup 뒤 unchanged semantic host nftables로 exit `0`을 기록했다. Current-tree five-minute 4 GB Linux performance gate도 `GATE_VERDICT=pass`, p95 `533us`, outage overhead `436us`로 exit `0`을 기록했고 fast browser QA는 sanitized active/revoked capture와 함께 exit `0`을 기록했다. 1회의 billable live `openai_responses`/`gpt-5.6-sol` synthetic `path_scan` probe도 control-plane mutation 없이 `status=ok`을 반환했다. Current-SHA committed clean-checkout/CI, final release capture/submission evidence 및 release decision은 open이다.
 
 ### 맥락
 
@@ -519,7 +520,7 @@ Log-first prototype은 request를 관찰하기 전에 external formatting, trans
 
 ### 상태
 
-**채택됨 — 구현 증거 존재, integrated release 검증 미완료.** 최종 권장 architecture와 구현 준비 요청의 일부로 project owner가 2026-07-18 승인했다. 88-package backend gate, PostgreSQL 17.10 33-migration/72-table verifier, repeated-content-digest identity test, API-only terminal validation-attempt projection, focused frontend/harness suite 및 RUN25 fast mutation/browser/outage/restart evidence가 local implementation evidence를 제공한다. Commit `d66c4b8a4842ad4226cb741e35331ba5b9068520`의 외부 clean clone도 `make check`를 통과했고 hosted CI run `29696139988`은 implementation checkpoint `5ef870155bc59e6ac3c30279a7cd8be8d0249887`에서 10개 shard를 모두 통과했다. Default native-expiry, native host-ruleset, live OpenAI 및 release-duration gate는 open이다. 이 ADR은 ADR-006, ADR-010, ADR-011에서 명시한 executor-authority 및 recovery-reapplication mechanics만 대체한다. Edge, origin, minimization, delivery 및 auth-binding clause는 compatible earlier contract를 축소하거나 완성한다. 해당 ADR의 product goal, trust boundary, validation order, HIL requirement, Gateway-first 선택 또는 optional-adapter position은 대체하지 않는다.
+**채택됨 — 구현 증거 존재, integrated release 검증 미완료.** 최종 권장 architecture와 구현 준비 요청의 일부로 project owner가 2026-07-18 승인했다. Current-tree native v6 E2E와 five-minute 4 GB performance gate가 exit `0`을 기록했다. v6는 bounded lifecycle expiry/signed absence/recovery/forwarding/audit 및 semantic host invariance를 증명했고 performance는 `GATE_VERDICT=pass`, p95 `533us`, outage `436us`를 보고했다. Fast browser QA는 sanitized capture와 함께 exit `0`을 기록했지만 non-release UI evidence다. 1회의 billable live `openai_responses`/`gpt-5.6-sol` probe도 control-plane mutation 없이 `status=ok`을 반환했다. Current-SHA clean-checkout/CI, final release evidence 및 decision은 open이다. 이 ADR은 ADR-006, ADR-010, ADR-011에서 명시한 executor-authority 및 recovery-reapplication mechanics만 대체한다. Edge, origin, minimization, delivery 및 auth-binding clause는 compatible earlier contract를 축소하거나 완성한다. 해당 ADR의 product goal, trust boundary, validation order, HIL requirement, Gateway-first 선택 또는 optional-adapter position은 대체하지 않는다.
 
 ### 맥락
 
@@ -569,7 +570,7 @@ ADR-006, ADR-010, ADR-011은 temporary isolated nftables enforcement, HIL 아래
 
 ### 상태
 
-**채택됨 — integrated database evidence 존재, release 검증 미완료.** Asserted v0.1 demo profile의 architecture로 확정한다. PostgreSQL 17.10 verifier는 fresh/restart-noop과 `33→24→33`을 포함한 33 migration/72 table을 통과했고 staged activation 및 recovery evidence는 유지된다. RUN25 fast는 signed-history activation, exact HIL mutation/inspect/revoke, browser, outage, restart 및 cleanup path를 통과했다. Commit `d66c4b8a4842ad4226cb741e35331ba5b9068520`의 외부 clean clone도 `make check`를 통과했고 hosted CI run `29696139988`은 implementation checkpoint `5ef870155bc59e6ac3c30279a7cd8be8d0249887`에서 10개 shard를 모두 통과했다. Default native-expiry, native host-ruleset, live OpenAI 및 4-GB performance gate는 pending이다. 이 ADR은 ADR-012의 demo-history clause를 구체화하며 production에서 signed fixture를 허용하지 않는다.
+**채택됨 — integrated database evidence 존재, release 검증 미완료.** Asserted v0.1 demo profile의 architecture로 확정한다. PostgreSQL 17.10 verifier는 fresh/restart-noop과 `33→24→33`을 포함한 33 migration/72 table을 통과했고 staged activation 및 recovery evidence는 유지된다. Current-tree native v6 E2E는 real expiry, signed absence, audit/recovery/forwarding convergence 및 semantic host invariance로 exit `0`을 기록했고 five-minute 4 GB performance gate도 `GATE_VERDICT=pass`, p95 `533us`, outage `436us`로 exit `0`을 기록했다. 1회의 billable live `openai_responses`/`gpt-5.6-sol` probe도 control-plane mutation 없이 `status=ok`을 반환했다. Current-SHA clean-checkout/CI, final release evidence 및 decision은 pending이다. 이 ADR은 ADR-012의 demo-history clause를 구체화하며 production에서 signed fixture를 허용하지 않는다.
 
 ### 맥락
 
@@ -609,9 +610,46 @@ Demo에는 freshly sealed public proof 하나에서 least-privilege consumer 둘
 
 ---
 
+## ADR-014: Signed read-back interval에 expiry lifecycle을 바인딩한다
+
+### 상태
+
+**채택됨 — 구현 및 native 검증 증거 존재, release 검증 미완료.** Default native Linux expiry run은 그 밖의 add/restart path가 성공한 뒤 lifecycle failure를 관측했다. 저장된 단일 시점 expiry expectation이 실제 kernel expiry보다 앞설 수 있었다. Corrective v2 contract를 구현했고 이후 current-tree native v6 E2E가 real expiry, signed absence, audit/recovery/forwarding convergence 및 semantic host invariance로 exit `0`을 기록했다. Five-minute 4 GB performance gate도 `GATE_VERDICT=pass`, p95 `533us`, outage `436us`로 exit `0`을 기록했으며 final release gate는 open이다.
+
+### 맥락
+
+Legacy `execution-result-v1`은 outer execution interval(`started_at`부터 `completed_at`)과 양의 정수 `remaining_ttl_seconds`를 기록한다. 고정 nftables read-back이 시작·종료된 시각은 attest하지 않는다. nftables JSON은 남은 timeout을 정확한 expiry instant가 아닌 integer-second observation으로 노출한다. 따라서 mutation 이전의 start time에서 expiry를 추정하면 kernel element가 정상적으로 남아 있을 수 있는 시점보다 앞서 reconciliation을 schedule할 수 있다. 그러면 정상 active element가 late로 보이고 projected boundary 근처의 absent element가 early로 보일 수 있다. 어느 쪽의 false result도 안전하지 않으며 native lifecycle gate는 fail closed했다.
+
+Corrective design은 기존 property를 보존해야 한다. Executor만 nftables를 관측하고, HIL은 renewal authority를 주지 않으며, scheduler는 element를 re-add하거나 extend하지 않고, missing 또는 ambiguous evidence는 계속 fail closed한다.
+
+### 결정
+
+1. **Versioned result attestation:** 새 executor output은 [`execution-result-v2`](../contracts/enforcement/execution_result_v2.schema.json)를 MUST 사용하고 `Ed25519("sentinelflow execution-result-v2\\n" || SHA256(JCS(payload)))` domain으로 별도 서명한다. v2는 v1의 identity, capability, artifact, operation, classification, read-back-state, TTL, schema-digest, journal-sequence, error field를 모두 유지하고 required millisecond UTC `readback_started_at`, `readback_completed_at`을 더한다. 두 값은 고정 nft JSON read-back만 bracket하고 `started_at <= readback_started_at <= readback_completed_at <= completed_at`을 MUST 만족한다. v1은 historical fixture/record를 위해 parse 가능하게 남지만 새 expiry-classification boundary를 제공할 수 없다.
+2. **추측하지 않는 bounded expiry:** Positive `remaining_ttl_seconds`를 가진 signed active read-back에서 lifecycle은 inclusive uncertainty interval을 만든다. `lower = readback_started_at + remaining_ttl_seconds`, `upper = readback_completed_at + remaining_ttl_seconds + 1 second`다. Upper의 1초 allowance는 nftables의 integer-second projection만 보정한다. Persisted lifecycle representation과 scheduler는 두 bound 또는 동등한 lossless representation을 보존해야 하며 invented exact kernel-expiry timestamp 하나로 collapse해서는 안 된다.
+3. **보수적 분류:** `absent` read-back은 signed completion이 `lower`보다 엄격히 이전일 때만 `missing_early`이고 signed start가 `upper` 이상일 때만 `expired`다. `active` read-back은 signed start가 `upper` 이상일 때만 `late_active`다. 어느 boundary와 겹치는 observation, missing/invalid v2 bracket, unavailable/mismatched read-back, 불가능한 time order는 `indeterminate`다. 이는 success transition을 만들지 않고 기존 alert/fail-closed handling을 따른다. Valid active observation이 `upper` 전에 시작하면 action은 active로 남는다.
+4. **Time ambiguity가 recovery authority를 만들지 않음:** 어느 bound도 reapplication, timeout refresh, scheduler mutation 또는 failed validation에 대한 administrator override를 허용하지 않는다. `missing_early`, `late_active`, `indeterminate`는 해당되는 failure/audit outcome으로 남는다. 이후 정상 block에는 새 candidate, validation snapshot, HIL decision, capability, once-only add가 필요하다.
+5. **Migration 및 compatibility discipline:** Database change는 적용된 migration history를 보존하는 새 forward migration이어야 하고 exact v2 signed byte/digest를 저장·검증하며 새 lifecycle scheduling에서 v1을 거부하고 unsafe one-point expectation의 schedule을 bounded contract로 atomically 옮겨야 한다. Historical signed result를 rewrite하거나 read-back timestamp를 합성하거나 failed action을 silent repair해서는 안 된다.
+6. **Release 전 필수 증명:** Unit/contract test는 missing, reversed, execution-interval 밖, non-millisecond, wrong-domain v2 attestation을 거부해야 한다. PostgreSQL integration test는 second add 또는 TTL increase 없이 legitimate active, true early-missing, true expiry, late-active, boundary-overlapping indeterminate, restart, duplicate, crash path를 증명해야 한다. 이어서 default real-time Linux run이 native expiry와 host-ruleset invariance를 증명해야 하며 fast Compose, fixture-clock, static evidence로 대체할 수 없다.
+
+### 대안
+
+- **`started_at + ttl_seconds`를 exact expiry로 사용:** Mutation이 `started_at` 뒤에 일어날 수 있고 read-back이 integer projection을 반환하므로 false lifecycle failure를 만들 수 있어 거부한다.
+- **`completed_at + remaining_ttl_seconds`를 exact expiry로 사용:** Completion은 observation 뒤이며 read-back duration과 integer projection uncertainty를 모두 잃으므로 거부한다.
+- **더 큰 generic reconciliation grace period만 추가:** Ordering error를 숨기고 true early disappearance 탐지를 약화시키며 선택한 boundary의 signed evidence를 제공하지 못하므로 거부한다.
+- **Uncertain absence를 expired로 처리:** Boundary-overlapping absence는 native expiry를 증명할 수 없으므로 거부한다.
+- **State가 uncertain 또는 missing이면 re-add:** TTL을 refresh하고 exact new authority chain을 우회하므로 거부한다.
+
+### 결과
+
+- Lifecycle storage와 schedule은 explicit bounded expiry contract와 result-schema migration을 얻는다.
+- Native failure는 unmet release condition의 evidence로 남으며 어떤 문서 claim도 이를 passing expiry test로 바꾸지 않는다.
+- Correction은 executor/result와 database compatibility 작업을 늘리지만 expiry, recovery, alert decision을 locally guessed timestamp가 아닌 evidence에 바인딩한다.
+
+---
+
 ## 3. 확정된 v0.1 결정과 후속 ADR trigger
 
-Detection threshold/lifecycle, Gateway identity/protocol bound, minimized event delivery, AI model/request/failure behavior, single-admin authentication, retention, nftables grammar/TTL/digest, validation/approval validity, protected-target policy, impact lookback, dispatcher/executor separation/recovery, non-renewable demo-history activation 및 performance target은 ADR-001부터 ADR-013에서 확정했다. Schema field mechanics, migration layout, queue implementation, UI composition 및 test harness detail은 이 결정을 구현해야 하며 변경 권한을 주는 미결사항이 아니다.
+Detection threshold/lifecycle, Gateway identity/protocol bound, minimized event delivery, AI model/request/failure behavior, single-admin authentication, retention, nftables grammar/TTL/digest, validation/approval validity, protected-target policy, impact lookback, dispatcher/executor separation/recovery, non-renewable demo-history activation, bounded expiry interpretation 및 performance target은 ADR-001부터 ADR-014에서 확정했다. Schema field mechanics, migration layout, queue implementation, UI composition 및 test harness detail은 이 결정을 구현해야 하며 변경 권한을 주는 미결사항이 아니다.
 
 Product-level post-v0.1 trigger는 다음 세 가지뿐이다.
 

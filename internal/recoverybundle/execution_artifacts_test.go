@@ -532,6 +532,31 @@ func TestValidateJournalExecutionArtifactRowsReconcilesRetainedSubset(t *testing
 	}
 }
 
+func TestValidateExecutionArtifactRowsV2ReadbackBounds(t *testing.T) {
+	fixture := newExecutionArtifactFixture(t)
+	upgradeExecutionArtifactFixtureToV2(t, &fixture)
+	if err := validateExecutionArtifactFixture(fixture); err != nil {
+		t.Fatalf("valid v2 execution artifact rejected: %v", err)
+	}
+	if err := ValidateJournalExecutionArtifactRows(
+		terminalJournalBytes(t, fixture, true),
+		bytes.NewReader(executionArtifactFixtureBytes(t, fixture)),
+		fixture.dispatchPublic,
+		fixture.resultPublic,
+	); err != nil {
+		t.Fatalf("valid v2 journal/database artifacts rejected: %v", err)
+	}
+
+	tampered := newExecutionArtifactFixture(t)
+	upgradeExecutionArtifactFixtureToV2(t, &tampered)
+	*tampered.row.Result.ReadbackCompletedAt = databaseTime(
+		mustFixtureDatabaseTime(t, tampered.row.Result.CompletedAt).Add(time.Millisecond),
+	)
+	if err := validateExecutionArtifactFixture(tampered); err == nil {
+		t.Fatal("database readback bound detached from signed v2 result")
+	}
+}
+
 func newExecutionArtifactFixture(t *testing.T) executionArtifactFixture {
 	t.Helper()
 	dispatchPublic, dispatchPrivate, err := ed25519.GenerateKey(rand.Reader)
@@ -675,6 +700,70 @@ func newExecutionArtifactFixture(t *testing.T) executionArtifactFixture {
 		signedCapability: signedCapability, signedResult: signedResult,
 		receivedAt: issuedAt, deadlineAt: issuedAt.Add(2 * time.Second),
 	}
+}
+
+func upgradeExecutionArtifactFixtureToV2(t *testing.T, fixture *executionArtifactFixture) {
+	t.Helper()
+	verifiedCapability, err := fixture.capabilityVerifier.Verify(fixture.signedCapability)
+	if err != nil {
+		t.Fatal(err)
+	}
+	identities, err := keyidentity.Derive(fixture.dispatchPublic, fixture.resultPublic)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resultSigner, err := capability.NewResultSigner(
+		identities.ResultKeyID,
+		identities.ExecutorID,
+		fixture.resultPrivate,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	startedAt := mustFixtureDatabaseTime(t, fixture.row.Result.StartedAt)
+	completedAt := mustFixtureDatabaseTime(t, fixture.row.Result.CompletedAt)
+	readbackStartedAt := startedAt.Add(250 * time.Millisecond)
+	readbackCompletedAt := completedAt.Add(-250 * time.Millisecond)
+	remainingTTL := *fixture.row.Result.RemainingTTLSeconds
+	exitClass := capability.NFTExitClass(*fixture.row.Result.NFTExitClass)
+	checkedResult, err := capability.CheckResult(capability.Result{
+		SchemaVersion: capability.ResultV2SchemaVersion,
+		ResultID:      fixture.row.Result.ResultID, CapabilityID: fixture.row.Result.CapabilityID,
+		CapabilityDigest: fixture.row.Result.CapabilityDigest,
+		Operation:        capability.Operation(fixture.row.Result.Operation), ActionID: fixture.row.Result.ActionID,
+		ArtifactDigest: fixture.row.Result.ArtifactDigest, TargetIPv4: fixture.row.Result.TargetIPv4,
+		Classification: capability.Classification(fixture.row.Result.Classification), NFTExitClass: &exitClass,
+		ReadbackState:       capability.ReadbackState(fixture.row.Result.ReadbackState),
+		RemainingTTLSeconds: &remainingTTL, OwnedSchemaDigest: fixture.row.Result.OwnedSchemaDigest,
+		StartedAt: startedAt, ReadbackStartedAt: &readbackStartedAt,
+		ReadbackCompletedAt: &readbackCompletedAt, CompletedAt: completedAt,
+		JournalSequence: fixture.row.Result.JournalSequence,
+		ErrorCode:       capability.ResultErrorCode(fixture.row.Result.ErrorCode),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	signedResult, err := resultSigner.SignFor(verifiedCapability, checkedResult)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fixture.signedResult = signedResult
+	fixture.row.Result.SchemaVersion = capability.ResultV2SchemaVersion
+	fixture.row.Result.ReadbackStartedAt = stringPointer(databaseTime(readbackStartedAt))
+	fixture.row.Result.ReadbackCompletedAt = stringPointer(databaseTime(readbackCompletedAt))
+	fixture.row.Result.JCSHex = hex.EncodeToString(signedResult.CanonicalBytes())
+	fixture.row.Result.Digest = checkedResult.Digest()
+	fixture.row.Result.SignatureHex = hex.EncodeToString(signedResult.Signature())
+	fixture.row.LifecycleApplication.ResultDigest = checkedResult.Digest()
+}
+
+func mustFixtureDatabaseTime(t *testing.T, value string) time.Time {
+	t.Helper()
+	parsed, ok := parseDatabaseTime(value)
+	if !ok {
+		t.Fatalf("invalid fixture database time %q", value)
+	}
+	return parsed
 }
 
 func newExecutionArtifactFollowupFixture(

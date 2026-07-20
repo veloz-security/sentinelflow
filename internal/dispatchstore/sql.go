@@ -40,6 +40,12 @@ SELECT sentinelflow.record_execution_result(
     $8, $9, $10, $11, $12, $13, $14, $15, $16, $17,
     $18, $19, $20, $21, $22
 )::text`
+	recordResultV2SQL = `
+SELECT sentinelflow.record_execution_result_v2(
+    $1::uuid, $2::uuid, $3::uuid, $4::uuid, $5, $6, $7::uuid,
+    $8, $9, $10, $11, $12, $13, $14, $15, $16, $17,
+    $18, $19, $20, $21, $22, $23, $24
+)::text`
 	finishJobSQL = `
 SELECT sentinelflow.finish_dispatch_job(
     $1::uuid, $2::uuid, $3, $4, $5, $6

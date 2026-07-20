@@ -192,6 +192,9 @@ detection_diagnostic_sql_file="$temp_root/detection-diagnostic.sql"
 detection_diagnostic_db_file="$temp_root/detection-diagnostic-db.json"
 detection_diagnostic_detector_file="$temp_root/detection-diagnostic-detector.json"
 detection_diagnostic_validationworker_file="$temp_root/detection-diagnostic-validationworker.json"
+expiry_diagnostic_sql_file="$temp_root/expiry-diagnostic.sql"
+expiry_diagnostic_db_file="$temp_root/expiry-diagnostic-db.json"
+expiry_diagnostic_runtime_file="$temp_root/expiry-diagnostic-runtime.json"
 detection_stability_sql_file="$temp_root/detection-stability.sql"
 detection_stability_db_file="$temp_root/detection-stability-db.json"
 detection_stability_candidate_file="$temp_root/detection-stability-candidate.json"
@@ -581,6 +584,51 @@ capture_detection_diagnostics() {
   fi
   rm -f "$detection_diagnostic_db_file" "$detection_diagnostic_detector_file" \
     "$detection_diagnostic_validationworker_file"
+}
+
+# This is called only when the release expiry convergence assertion fails.
+# It emits the bounded, redacted lifecycle projection needed to separate an
+# early, late, and boundary-overlap result.  It deliberately does not inspect
+# logs, environment, JCS, signatures, capabilities, or request data.
+capture_expiry_diagnostics() {
+  local action_id dispatcher_id executor_runtime_id lifecycleworker_id
+  if [[ "$diagnostic_ready" != true || -z "$postgres_id" || ! -f "$expiry_diagnostic_sql_file" ]]; then
+    return 1
+  fi
+  if ! action_id="$(node "$helper" print-expiry-action-id --state "$e2e_state_file")" ||
+    [[ ! "$action_id" =~ ^[0-9a-f-]{36}$ ]]; then
+    return 1
+  fi
+  dispatcher_id="$(compose 30 ps --quiet dispatcher)"
+  executor_runtime_id="$(compose 30 ps --quiet executor)"
+  lifecycleworker_id="$(compose 30 ps --quiet lifecycleworker)"
+  if [[ -z "$dispatcher_id" || -z "$executor_runtime_id" || -z "$lifecycleworker_id" ]]; then
+    return 1
+  fi
+  rm -f "$expiry_diagnostic_db_file" "$expiry_diagnostic_runtime_file"
+  if ! postgres_query "$expiry_diagnostic_sql_file" "$expiry_diagnostic_db_file" --set="action_id=$action_id"; then
+    rm -f "$expiry_diagnostic_db_file" "$expiry_diagnostic_runtime_file"
+    return 1
+  fi
+  if ! {
+    printf '{"dispatcher":'
+    run_bounded 15 docker inspect --format '{"running":{{json .State.Running}},"restart_count":{{json .RestartCount}}}' "$dispatcher_id"
+    printf ',"executor":'
+    run_bounded 15 docker inspect --format '{"running":{{json .State.Running}},"restart_count":{{json .RestartCount}}}' "$executor_runtime_id"
+    printf ',"lifecycleworker":'
+    run_bounded 15 docker inspect --format '{"running":{{json .State.Running}},"restart_count":{{json .RestartCount}}}' "$lifecycleworker_id"
+    printf '}\n'
+  } >"$expiry_diagnostic_runtime_file"; then
+    rm -f "$expiry_diagnostic_db_file" "$expiry_diagnostic_runtime_file"
+    return 1
+  fi
+  chmod 0600 "$expiry_diagnostic_db_file" "$expiry_diagnostic_runtime_file"
+  if ! node "$helper" print-expiry-diagnostic "$expiry_diagnostic_db_file" \
+    --runtime "$expiry_diagnostic_runtime_file"; then
+    rm -f "$expiry_diagnostic_db_file" "$expiry_diagnostic_runtime_file"
+    return 1
+  fi
+  rm -f "$expiry_diagnostic_db_file" "$expiry_diagnostic_runtime_file"
 }
 
 wait_for_cold_start_coverage() {
@@ -1059,6 +1107,7 @@ chmod 0600 "$environment_file"
 
 node "$helper" write-evidence-sql --output "$evidence_sql_file"
 node "$helper" write-detection-diagnostic-sql --output "$detection_diagnostic_sql_file"
+node "$helper" write-expiry-diagnostic-sql --output "$expiry_diagnostic_sql_file"
 node "$helper" write-detection-stability-sql --output "$detection_stability_sql_file"
 node "$helper" write-coverage-readiness-sql --output "$coverage_readiness_sql_file"
 run_bounded 30 "$recovery_tool" postgres-artifact-copy-sql >"$artifact_copy_sql_file"
@@ -1374,12 +1423,18 @@ else
     exit 1
   fi
   probe_gateway "$action_target_ipv4" expired-forwarding
-  run_bounded 180 node "$helper" verify-expired \
+  current_stage="verify-expired"
+  if ! run_bounded 180 node "$helper" verify-expired \
     --base-url "http://127.0.0.1:$web_port/" \
     --origin "http://localhost:$web_port" \
     --credentials "$credentials_file" \
     --state "$e2e_state_file" \
-    --timeout-seconds 120
+    --timeout-seconds 120; then
+    if ! capture_expiry_diagnostics; then
+      printf 'DEMO_E2E_EXPIRY_DIAGNOSTIC_UNAVAILABLE stage=verify-expired\n' >&2
+    fi
+    exit 1
+  fi
   if ! validate_persisted_evidence \
     "$evidence_terminal_file" "$terminal_journal_snapshot" "$terminal_journal_raw" \
     "$validation_terminal_journal" "expired"; then

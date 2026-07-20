@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url';
 
 import {
   buildComposeOverride,
+  auditForAction,
   canonicalJSON,
   compareJournalBuffers,
   coverageReadinessAdvanced,
@@ -30,6 +31,7 @@ import {
   validateDemoState,
   validateDetectionDiagnostic,
   validateDetectionStability,
+  validateExpiryDiagnostic,
   validateDeterministicPolicy,
   validateEngineNoneNetworkIDOutput,
   validateExpiredAction,
@@ -48,6 +50,27 @@ import {
 const digest = (value) => `sha256:${value.repeat(64)}`;
 const digestText = (value) => `sha256:${createHash('sha256').update(value, 'utf8').digest('hex')}`;
 const uuid = (suffix) => `019b0000-0000-7000-8000-${suffix.padStart(12, '0')}`;
+const auditCursor = (page) => {
+  const bytes = Buffer.alloc(8);
+  bytes.writeBigUInt64BE(BigInt(page));
+  return `a1.${bytes.toString('base64url')}`;
+};
+const actionAuditItem = (sequence, actionID) => ({
+  sequence,
+  event_id: uuid(String(sequence)),
+  actor_type: 'executor',
+  actor_id: 'executor-01',
+  action: 'enforcement_inspected_active',
+  object_type: 'enforcement_action',
+  object_id: actionID,
+  enforcement_action_id: actionID,
+  outcome: 'succeeded',
+  occurred_at: '2026-07-20T01:02:03Z',
+  recorded_at: '2026-07-20T01:02:03Z',
+});
+const actionAuditPage = (firstSequence, actionID) => Array.from(
+  { length: 100 }, (_, index) => actionAuditItem(firstSequence - index, actionID),
+);
 const shellWrapper = (lines) => ['/bin/sh', '-eu', '-c', `${lines.join('\n')}\n`];
 const runtimeWrapperCommands = {
   'secret-init': shellWrapper([
@@ -351,6 +374,97 @@ test('fail-closed selection preserves the exact history binding mismatch termina
   ]);
 });
 
+test('action audit proof fetches every action-scoped page in strict descending sequence order', async () => {
+  const actionID = uuid('970');
+  const firstCursor = auditCursor(151);
+  const requested = [];
+  const client = {
+    request: async (pathname) => {
+      requested.push(pathname);
+      if (pathname === `/api/v1/audit-events?action_id=${actionID}&limit=100`) {
+        return { items: actionAuditPage(250, actionID), next_cursor: firstCursor };
+      }
+      if (pathname === `/api/v1/audit-events?action_id=${actionID}&limit=100&cursor=${firstCursor}`) {
+        return { items: [actionAuditItem(150, actionID)] };
+      }
+      throw new Error(`unexpected request: ${pathname}`);
+    },
+  };
+  const items = await auditForAction(client, actionID);
+  assert.equal(items.length, 101);
+  assert.equal(items[0].sequence, 250);
+  assert.equal(items.at(-1).sequence, 150);
+  assert.deepEqual(requested, [
+    `/api/v1/audit-events?action_id=${actionID}&limit=100`,
+    `/api/v1/audit-events?action_id=${actionID}&limit=100&cursor=${firstCursor}`,
+  ]);
+});
+
+test('action audit proof fails closed on malformed pagination, cursor binding, and sequence overlap', async () => {
+  const actionID = uuid('971');
+  const firstCursor = auditCursor(151);
+  const cases = [
+    {
+      name: 'noncanonical cursor',
+      pages: [{ items: actionAuditPage(250, actionID), next_cursor: 'a1.ABCDEFGHIJK' }],
+      pattern: /next cursor is invalid/,
+    },
+    {
+      name: 'unsafe cursor sequence',
+      pages: [{ items: actionAuditPage(250, actionID), next_cursor: auditCursor(9_007_199_254_740_992n) }],
+      pattern: /next cursor is invalid/,
+    },
+    {
+      name: 'empty page with cursor',
+      pages: [{ items: [], next_cursor: firstCursor }],
+      pattern: /next cursor does not bind a full page/,
+    },
+    {
+      name: 'partial page with cursor',
+      pages: [{ items: [actionAuditItem(250, actionID)], next_cursor: firstCursor }],
+      pattern: /next cursor does not bind a full page/,
+    },
+    {
+      name: 'cursor bound to a different final sequence',
+      pages: [{ items: actionAuditPage(250, actionID), next_cursor: auditCursor(150) }],
+      pattern: /next cursor does not bind the final sequence/,
+    },
+    {
+      name: 'sequence overlap',
+      pages: [
+        { items: actionAuditPage(250, actionID), next_cursor: firstCursor },
+        { items: [actionAuditItem(151, actionID)] },
+      ],
+      pattern: /sequence is not strictly descending/,
+    },
+  ];
+  for (const testCase of cases) {
+    let page = 0;
+    await assert.rejects(
+      auditForAction({ request: async () => testCase.pages[page++] }, actionID),
+      testCase.pattern,
+      testCase.name,
+    );
+  }
+});
+
+test('action audit proof rejects pagination beyond its explicit bounded evidence window', async () => {
+  const actionID = uuid('972');
+  let page = 0;
+  await assert.rejects(
+    auditForAction({ request: async () => {
+      const firstSequence = 10_000 - (page * 100);
+      page += 1;
+      return {
+        items: actionAuditPage(firstSequence, actionID),
+        next_cursor: auditCursor(firstSequence - 99),
+      };
+    } }, actionID),
+    /pagination exceeds strict bound/,
+  );
+  assert.equal(page, 64);
+});
+
 test('valid and fail-closed selection reject incident request identity drift immediately', async () => {
   const valid = deterministicPolicyFixture();
   const driftedValid = structuredClone(valid.detail);
@@ -486,7 +600,7 @@ test('fail-closed audit proof rejects pagination and policy filter drift', async
   };
   for (const testCase of [
     {
-      name: 'pagination', page: { items: [], next_cursor: 'a1.ABCDEFGHIJK' },
+      name: 'pagination', page: { items: [], next_cursor: auditCursor(1) },
       pattern: /policy audit proof is paginated/,
     },
     {
@@ -1706,7 +1820,10 @@ test('management client keeps its deadline through bounded body consumption', as
         Connection: 'close',
       });
       response.write('{"partial":');
-      const timer = setTimeout(() => response.end('true}'), 1_000);
+      // Keep this well beyond the 50ms client deadline. A one-second stall can
+      // coalesce with unrelated synchronous test work and let both timers run
+      // in one event-loop turn, which makes this deadline assertion flaky.
+      const timer = setTimeout(() => response.end('true}'), 5_000);
       response.once('close', () => clearTimeout(timer));
       return;
     }
@@ -2115,6 +2232,73 @@ test('expiry requires signed absent inspection, terminal state, and later audit'
   }];
   assert.equal(validateExpiredAction(expired, audit, state), true);
   assert.throws(() => validateExpiredAction(expired, [], state), /audit is missing/);
+});
+
+test('expiry failure diagnostics are bounded to lifecycle metadata and signed digests', () => {
+  const diagnostic = {
+    schema_version: 'sentinelflow-demo-e2e-expiry-diagnostic-v1',
+    action: {
+      target_ipv4: '203.0.113.20', state: 'active', version: 3,
+      queued_at: '2026-07-19T01:00:00.000Z', applied_at: '2026-07-19T01:00:01.000Z',
+      expected_expires_at: '2026-07-19T01:30:00.000Z', finished_at: null,
+      updated_at: '2026-07-19T01:29:59.000Z',
+    },
+    expiry_bounds: {
+      source_result_digest: digest('a'),
+      expires_not_before: '2026-07-19T01:30:00.000Z',
+      expires_not_after: '2026-07-19T01:30:01.000Z',
+    },
+    results: [{
+      schema_version: 'execution-result-v2', operation: 'inspect', classification: 'inspect_active',
+      readback_state: 'active', remaining_ttl_seconds: 1,
+      started_at: '2026-07-19T01:29:59.000Z', completed_at: '2026-07-19T01:29:59.500Z',
+      persisted_at: '2026-07-19T01:29:59.600Z',
+      readback_started_at: '2026-07-19T01:29:59.100Z',
+      readback_completed_at: '2026-07-19T01:29:59.400Z', result_digest: digest('b'),
+    }],
+    schedules: [{
+      purpose: 'expiry_confirmation', state: 'dispatched', due_at: '2026-07-19T01:30:01.000Z',
+      attempts: 1, last_error_code: null, last_error_digest: null, source_result_digest: digest('a'),
+      updated_at: '2026-07-19T01:29:59.000Z',
+    }],
+    audit: [{
+      action: 'enforcement_inspected_active', outcome: 'succeeded', primary_digest: digest('b'),
+      secondary_digest: digest('c'), recorded_at: '2026-07-19T01:29:59.700Z',
+    }],
+  };
+  const runtime = {
+    dispatcher: { running: true, restart_count: 0 },
+    executor: { running: true, restart_count: 1 },
+    lifecycleworker: { running: true, restart_count: 0 },
+  };
+  assert.deepEqual(validateExpiryDiagnostic(diagnostic, runtime), {
+    ...diagnostic, results: diagnostic.results, schedules: diagnostic.schedules, audit: diagnostic.audit,
+    ...runtime,
+  });
+  assert.throws(() => validateExpiryDiagnostic({ ...diagnostic, results: [{
+    ...diagnostic.results[0], readback_completed_at: null,
+  }] }, runtime), /interval is incomplete/);
+  assert.throws(() => validateExpiryDiagnostic({ ...diagnostic, audit: [{
+    ...diagnostic.audit[0], request_path: '/not-allowed',
+  }] }, runtime), /shape is invalid/);
+});
+
+test('expiry diagnostic SQL keeps its selected-action CTE distinct from relation aliases', () => {
+  const helperSource = readFileSync(new URL('./demo-e2e.mjs', import.meta.url), 'utf8');
+  const start = helperSource.indexOf('const EXPIRY_DIAGNOSTIC_SQL = `');
+  const end = helperSource.indexOf('\n`;\n\nasync function readNDJSON', start);
+  assert.ok(start >= 0 && end > start, 'expiry diagnostic SQL must remain independently inspectable');
+  const sql = helperSource.slice(start, end);
+
+  // PostgreSQL resolves CTE and relation aliases in the same query namespace.
+  // Keep the CTE name specific so a future refactor cannot restore the former
+  // ambiguous `action` alias that prevented the failure diagnostic from parsing.
+  assert.match(sql, /WITH selected_action AS \(/);
+  assert.doesNotMatch(sql, /WITH action AS \(/);
+  assert.match(sql, /FROM sentinelflow\.enforcement_actions action\b/);
+  assert.ok((sql.match(/JOIN selected_action action\b/g) ?? []).length === 4,
+    'each expiry diagnostic projection must join the distinct selected-action CTE');
+  assert.match(sql, /\) FROM selected_action action\)\s*,\n  'expiry_bounds'/);
 });
 
 test('revoke requires a terminal signed result ordered after the add', () => {

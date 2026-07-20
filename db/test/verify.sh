@@ -182,6 +182,7 @@ verify_dispatch_lifecycle_migration_lifecycle() {
   fi
 
   for migration in \
+    000034_execution_result_v2_expiry_bounds.down.sql \
     000033_analysis_stale_version_resolution.down.sql \
     000032_validation_attempt_api_projection.down.sql \
     000031_artifact_content_digest_identity.down.sql \
@@ -224,7 +225,7 @@ END
 
   # Applying the exact pending suffix, rather than replaying the already-
   # applied prefix, is the supported forward recovery from a clean rollback.
-  apply_migrations "$database" 9
+  apply_migrations "$database" 10
   after="$(migration_wrapper_snapshot "$database")"
   if [[ "$after" != "$before" ]]; then
     printf 'ERROR: dispatch wrapper definitions, ownership, configuration, or ACLs changed after rollback/reapply\n' >&2
@@ -522,6 +523,7 @@ create_database sentinelflow_verify_exact_lifecycle
 create_database sentinelflow_verify_sse_live
 create_database sentinelflow_verify_exact_live
 create_database sentinelflow_verify_migration_chain
+create_database sentinelflow_verify_expiry_bounds
 create_database sentinelflow_verify_content_down
 create_database sentinelflow_verify_stale_repair
 
@@ -530,6 +532,11 @@ create_database sentinelflow_verify_stale_repair
 # after later fixture databases have granted it CONNECT/USAGE privileges.
 apply_migrations sentinelflow_verify_migration_chain
 verify_dispatch_lifecycle_migration_lifecycle sentinelflow_verify_migration_chain
+apply_migrations sentinelflow_verify_expiry_bounds
+docker exec -i "$container" \
+  psql --no-psqlrc --set ON_ERROR_STOP=1 --username postgres \
+    --dbname sentinelflow_verify_expiry_bounds \
+    < "$db_root/test/verify_execution_result_v2_expiry_bounds.sql" >/dev/null
 apply_migrations sentinelflow_verify_one
 apply_migrations sentinelflow_verify_one 0
 apply_migrations sentinelflow_verify_two

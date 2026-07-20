@@ -23,7 +23,7 @@ Statuses are interpreted as follows:
 - **Accepted — implementation verification required**: the README or an explicit project-owner decision freezes a principle, contract, or trust boundary. Code and tests must demonstrate compliance.
 - **Proposed**: the README uses language such as `planned`, `intended`, `expected`, or `target`. The implementation may change.
 - **Open**: the README does not provide enough evidence to select an implementation detail.
-- **Superseded**: a later ADR replaces all or a named portion of this decision. ADR-010 supersedes only the command-generation boundary in ADR-003 and ADR-004; ADR-011 supersedes log-first primary-ingress assumptions without removing optional adapters or shared normalization; ADR-012 supersedes only the named executor-authority and recovery-reapplication mechanics in ADR-006, ADR-010, and ADR-011, while narrowing or completing their compatible edge and delivery contracts.
+- **Superseded**: a later ADR replaces all or a named portion of this decision. ADR-010 supersedes only the command-generation boundary in ADR-003 and ADR-004; ADR-011 supersedes log-first primary-ingress assumptions without removing optional adapters or shared normalization; ADR-012 supersedes only the named executor-authority and recovery-reapplication mechanics in ADR-006, ADR-010, and ADR-011, while narrowing or completing their compatible edge and delivery contracts; ADR-014 narrows only the expiry-time interpretation and result-attestation version used by ADR-012 lifecycle reconciliation.
 
 ## 2. Decision index
 
@@ -42,6 +42,7 @@ Statuses are interpreted as follows:
 | [ADR-011](#adr-011-adopt-a-gateway-first-hybrid-architecture-with-separated-data-and-control-planes) | Gateway-first hybrid data/control-plane split | Accepted — edge/delivery mechanics refined and executor-authority clause superseded by ADR-012 | FR-022~FR-026, NFR-001~NFR-002, NFR-012~NFR-014 |
 | [ADR-012](#adr-012-freeze-gateway-edge-delivery-and-once-only-enforcement-protocols) | Gateway edge, delivery integrity, exact AI/HIL contracts, and once-only enforcement protocols | Accepted — implementation evidence present; integrated release verification incomplete | FR-008~FR-016, FR-020~FR-026, NFR-001~NFR-003, NFR-006~NFR-009, NFR-012~NFR-014 |
 | [ADR-013](#adr-013-stage-and-expire-demo-history-authority-without-renewable-worker-privilege) | Staged, non-renewable signed demo-history authority | Accepted — targeted implementation evidence present; release verification incomplete | FR-012, FR-020, NFR-001~NFR-002, NFR-006, NFR-008~NFR-011 |
+| [ADR-014](#adr-014-bind-expiry-lifecycle-to-a-signed-read-back-interval) | Signed read-back interval and bounded expiry lifecycle | Accepted — implementation and release verification required | FR-014~FR-016, NFR-001~NFR-003, NFR-006~NFR-009 |
 
 FR/NFR ranges are inclusive; for example, `FR-005~FR-007` means every consecutive ID from both endpoints.
 
@@ -154,7 +155,7 @@ The accepted principles are:
 6. The request uses reasoning `medium`, `store: false`, strict Structured Outputs `text.format`, no tools, and a maximum of 2,048 output tokens. One attempt has a 30-second timeout and only one retry for classified `408`/`409`/`429`/`5xx` transient errors is allowed. Worker concurrency defaults to two analyses and the configurable demo operator budget defaults to USD 10 per UTC day; this is an operator guardrail, not an API price claim.
 7. Refusal, incomplete output, exhausted timeout/retry, schema failure, invalid evidence references, or operator-budget exhaustion produces the sole non-enforcing `analysis_failed` state with a typed reason such as `budget_exhausted`. Deterministic evidence remains available and no failed analysis may advance an enforcement artifact.
 
-The request/response and schema versions are compatibility boundaries. A model, prompt, schema, limit, timeout, or retry change requires contract tests and documentation updates. The implementation follows the official [`gpt-5.6-sol` model page](https://developers.openai.com/api/docs/models/gpt-5.6-sol), [model catalog](https://developers.openai.com/api/docs/models), and [Structured Outputs guide](https://developers.openai.com/api/docs/guides/structured-outputs). The opt-in smoke command exists, but no live billable result is release evidence yet.
+The request/response and schema versions are compatibility boundaries. A model, prompt, schema, limit, timeout, or retry change requires contract tests and documentation updates. The implementation follows the official [`gpt-5.6-sol` model page](https://developers.openai.com/api/docs/models/gpt-5.6-sol), [model catalog](https://developers.openai.com/api/docs/models), and [Structured Outputs guide](https://developers.openai.com/api/docs/guides/structured-outputs). The opt-in smoke command has one verified billable, non-mutating result from `openai_responses`/`gpt-5.6-sol` for synthetic `path_scan`; it remains only a bounded contract probe, not authorization to enforce.
 
 ### Alternatives
 
@@ -304,7 +305,7 @@ RFC 5737 documentation ranges are protected in normal profiles. An isolated demo
 
 ### Status
 
-**Accepted — implementation evidence present; release verification incomplete.** The v0.1 stack and top-level process/module boundaries are implemented. Final root reruns of the 88-package backend gate and PostgreSQL 17.10 33-migration/72-table verifier, the API-only validation-attempt projection, current 39-file/363-test frontend unit suite plus production-CSP Chromium gate, isolated runtime gates, and the previously completed supply-chain/image gate have local evidence. RUN25 fast covered the mutation/outage/restart path; a later macOS `--run-browser-qa` execution passed active/revoked browser QA with its fixed 61-second revoked-phase pre-hash login-window wait. Commit `d66c4b8a4842ad4226cb741e35331ba5b9068520` passed `make check` in an external clean clone, and hosted CI run `29696139988` passed all ten shards for implementation checkpoint `5ef870155bc59e6ac3c30279a7cd8be8d0249887`. Default native expiry, native host-ruleset, live OpenAI, and 4-GB performance gates remain open.
+**Accepted — implementation evidence present; release verification incomplete.** The v0.1 stack and top-level process/module boundaries are implemented. Current-tree Linux native v6 E2E exited `0` with real kernel expiry, signed absent inspection, audit/recovery/forwarding convergence, and unchanged semantic host nftables after cleanup. The current-tree five-minute 4 GB Linux performance gate also exited `0` with `GATE_VERDICT=pass`, p95 `533us`, and outage overhead `436us`; fast browser QA exited `0` with sanitized active/revoked captures. A one-attempt billable live `openai_responses`/`gpt-5.6-sol` synthetic `path_scan` probe returned `status=ok` without control-plane mutation. Current-SHA committed clean-checkout/CI, final release captures/submission evidence, and release decision remain open.
 
 ### Context
 
@@ -519,7 +520,7 @@ A log-first prototype must wait for external formatting, transport, parsing, and
 
 ### Status
 
-**Accepted — implementation evidence present; integrated release verification incomplete.** Approved by the project owner on 2026-07-18 as part of the final recommended architecture and implementation-readiness request. The 88-package backend gate, PostgreSQL 17.10 33-migration/72-table verifier, repeated-content-digest identity tests, API-only terminal validation-attempt projection, focused frontend/harness suites, and RUN25 fast mutation/browser/outage/restart evidence provide local implementation evidence. Commit `d66c4b8a4842ad4226cb741e35331ba5b9068520` passed `make check` in an external clean clone, and hosted CI run `29696139988` passed all ten shards for implementation checkpoint `5ef870155bc59e6ac3c30279a7cd8be8d0249887`. The default native-expiry, native host-ruleset, live OpenAI, and release-duration gates remain open. This ADR supersedes only the explicitly named executor-authority and recovery-reapplication mechanics in ADR-006, ADR-010, and ADR-011. Its edge, origin, minimization, delivery, and auth-binding clauses narrow or complete compatible earlier contracts; it does not replace their product goals, trust boundaries, validation order, HIL requirement, Gateway-first selection, or optional-adapter position.
+**Accepted — implementation evidence present; integrated release verification incomplete.** Approved by the project owner on 2026-07-18 as part of the final recommended architecture and implementation-readiness request. Current-tree native v6 E2E and the five-minute 4 GB performance gate exited `0`; v6 proves bounded lifecycle expiry/signed absence/recovery/forwarding/audit plus semantic host invariance, and performance reports `GATE_VERDICT=pass`, p95 `533us`, outage `436us`. Fast browser QA exited `0` with sanitized captures but is non-release UI evidence. A one-attempt billable live `openai_responses`/`gpt-5.6-sol` probe returned `status=ok` without control-plane mutation. Current-SHA clean-checkout/CI, final release evidence, and decision remain open. This ADR supersedes only the explicitly named executor-authority and recovery-reapplication mechanics in ADR-006, ADR-010, and ADR-011. Its edge, origin, minimization, delivery, and auth-binding clauses narrow or complete compatible earlier contracts; it does not replace their product goals, trust boundaries, validation order, HIL requirement, Gateway-first selection, or optional-adapter position.
 
 ### Context
 
@@ -569,7 +570,7 @@ ADR-006, ADR-010, and ADR-011 selected temporary isolated nftables enforcement, 
 
 ### Status
 
-**Accepted — integrated database evidence present; release verification incomplete.** The architecture is frozen for the asserted v0.1 demo profile. The PostgreSQL 17.10 verifier passes 33 migrations and 72 tables, including fresh/restart-noop and `33→24→33`; the staged activation and recovery evidence remain intact. RUN25 fast passed the signed-history activation, exact HIL mutation/inspect/revoke, browser, outage, restart, and cleanup path. Commit `d66c4b8a4842ad4226cb741e35331ba5b9068520` passed `make check` in an external clean clone, and hosted CI run `29696139988` passed all ten shards for implementation checkpoint `5ef870155bc59e6ac3c30279a7cd8be8d0249887`. The default native-expiry, native host-ruleset, live OpenAI, and 4-GB performance gates remain pending. This ADR narrows ADR-012's demo-history clause; it does not authorize signed fixtures in production.
+**Accepted — integrated database evidence present; release verification incomplete.** The architecture is frozen for the asserted v0.1 demo profile. The PostgreSQL 17.10 verifier passes 33 migrations and 72 tables, including fresh/restart-noop and `33→24→33`; the staged activation and recovery evidence remain intact. Current-tree native v6 E2E exited `0` with real expiry, signed absence, audit/recovery/forwarding convergence, and semantic host invariance, while the five-minute 4 GB performance gate exited `0` with `GATE_VERDICT=pass`, p95 `533us`, outage `436us`. A one-attempt billable live `openai_responses`/`gpt-5.6-sol` probe returned `status=ok` without control-plane mutation. Current-SHA clean-checkout/CI, final release evidence, and decision remain pending. This ADR narrows ADR-012's demo-history clause; it does not authorize signed fixtures in production.
 
 ### Context
 
@@ -609,9 +610,46 @@ The demo needs a short, auditable bridge from one freshly sealed public proof to
 
 ---
 
+## ADR-014: Bind expiry lifecycle to a signed read-back interval
+
+### Status
+
+**Accepted — implementation and native verification evidence present; release verification incomplete.** A default native Linux expiry run observed a lifecycle failure after an otherwise successful add/restart path: the stored one-point expiry expectation could precede the real kernel expiry. The corrective v2 contract is implemented, and current-tree native v6 E2E subsequently exited `0` with real expiry, signed absence, audit/recovery/forwarding convergence, and semantic host invariance. The five-minute 4 GB performance gate also exited `0` with `GATE_VERDICT=pass`, p95 `533us`, and outage `436us`; final release gates remain open.
+
+### Context
+
+The legacy `execution-result-v1` records an outer execution interval (`started_at` through `completed_at`) and a positive integer `remaining_ttl_seconds`. It does not attest when the fixed nftables read-back began or ended. nftables JSON exposes the remaining timeout as an integer-second observation rather than an exact expiry instant. Deriving an expiry from the pre-mutation start time can therefore schedule reconciliation before the kernel element may legitimately disappear. A legitimate active element then looks late, while an absent element near the projected boundary can look early; either false result is unsafe and caused the native lifecycle gate to fail closed.
+
+The corrective design must preserve the existing properties: the executor alone observes nftables, HIL never grants a renewal, the scheduler never re-adds or extends an element, and missing or ambiguous evidence remains fail closed.
+
+### Decision
+
+1. **Versioned result attestation:** new executor output MUST use [`execution-result-v2`](../contracts/enforcement/execution_result_v2.schema.json), separately signed under `Ed25519("sentinelflow execution-result-v2\\n" || SHA256(JCS(payload)))`. The v2 result retains all v1 identity, capability, artifact, operation, classification, read-back-state, TTL, schema-digest, journal-sequence, and error fields, and adds required millisecond UTC `readback_started_at` and `readback_completed_at`. They bracket only the fixed nft JSON read-back and MUST satisfy `started_at <= readback_started_at <= readback_completed_at <= completed_at`. v1 remains parseable only for historical fixtures/records and cannot supply a new expiry-classification boundary.
+2. **Bounded, not guessed, expiry:** for a signed active read-back with positive `remaining_ttl_seconds`, lifecycle derives an inclusive uncertainty interval: `lower = readback_started_at + remaining_ttl_seconds`; `upper = readback_completed_at + remaining_ttl_seconds + 1 second`. The upper one-second allowance is solely for nftables' integer-second projection. The persisted lifecycle representation and scheduler MUST retain both bounds (or an equivalent lossless representation), not collapse them into an invented exact kernel-expiry timestamp.
+3. **Conservative classification:** an `absent` read-back is `missing_early` only when its signed completion is strictly before `lower`; it is `expired` only when its signed start is at or after `upper`. An `active` read-back is `late_active` only when its signed start is at or after `upper`. An observation overlapping either boundary, a missing/invalid v2 bracket, an unavailable/mismatched read-back, or impossible time order is `indeterminate`; it creates no success transition and follows the existing alert/fail-closed handling. An action remains active while a valid active observation starts before `upper`.
+4. **No recovery authority from time ambiguity:** neither bound permits reapplication, timeout refresh, scheduler mutation, or administrator override of failed validation. `missing_early`, `late_active`, and `indeterminate` remain failure/audit outcomes as applicable; a later legitimate block needs a new candidate, validation snapshot, HIL decision, capability, and once-only add.
+5. **Migration and compatibility discipline:** the database change MUST be a new forward migration that preserves applied migration history, stores/validates the exact v2 signed bytes and digest, rejects v1 for new lifecycle scheduling, and atomically moves any schedule from an unsafe one-point expectation to the bounded contract. It MUST not rewrite a historical signed result, synthesize read-back timestamps, or silently repair a failed action.
+6. **Required proof before release:** unit/contract tests must reject missing, reversed, out-of-execution-interval, non-millisecond, and wrong-domain v2 attestations. PostgreSQL integration tests must prove legitimate active, true early-missing, true expiry, late-active, overlapping-boundary indeterminate, restart, duplicate, and crash paths without a second add or TTL increase. The default real-time Linux run must then prove native expiry plus host-ruleset invariance; it is not replaced by fast Compose, fixture-clock, or static evidence.
+
+### Alternatives
+
+- **Use `started_at + ttl_seconds` as exact expiry:** rejected because mutation can occur after `started_at` and read-back returns an integer projection, producing false lifecycle failures.
+- **Use `completed_at + remaining_ttl_seconds` as exact expiry:** rejected because completion is after the observation and still loses both read-back duration and integer projection uncertainty.
+- **Add only a larger generic reconciliation grace period:** rejected because it hides the ordering error, weakens detection of true early disappearance, and does not provide signed evidence for the selected boundary.
+- **Treat uncertain absence as expired:** rejected because a boundary-overlapping absence cannot prove native expiry.
+- **Re-add when state is uncertain or missing:** rejected because it refreshes TTL and bypasses the exact new authority chain.
+
+### Consequences
+
+- Lifecycle storage and schedules gain an explicit bounded expiry contract and a result-schema migration.
+- The native failure is retained as evidence of an unmet release condition; no documentation claim changes it into a passing expiry test.
+- The correction increases executor/result and database compatibility work, but keeps expiry, recovery, and alert decisions evidence-bound rather than dependent on a locally guessed timestamp.
+
+---
+
 ## 3. Frozen v0.1 decisions and follow-up ADR triggers
 
-Detection thresholds and lifecycle, Gateway identity and protocol bounds, minimized event delivery, AI model/request/failure behavior, single-admin authentication, retention, nftables grammar/TTL/digest, validation/approval validity, protected-target policy, impact lookback, dispatcher/executor separation and recovery, non-renewable demo-history activation, and performance targets are frozen in ADR-001 through ADR-013. Schema field mechanics, migration layout, queue implementation, UI composition, and test harness details must implement those decisions and are not unresolved permission to change them.
+Detection thresholds and lifecycle, Gateway identity and protocol bounds, minimized event delivery, AI model/request/failure behavior, single-admin authentication, retention, nftables grammar/TTL/digest, validation/approval validity, protected-target policy, impact lookback, dispatcher/executor separation and recovery, non-renewable demo-history activation, bounded expiry interpretation, and performance targets are frozen in ADR-001 through ADR-014. Schema field mechanics, migration layout, queue implementation, UI composition, and test harness details must implement those decisions and are not unresolved permission to change them.
 
 Only these product-level post-v0.1 triggers remain open:
 

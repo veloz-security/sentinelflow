@@ -73,6 +73,51 @@ func TestAddLifecycleTerminalReplayAndIPCEnvelope(t *testing.T) {
 	}
 }
 
+type clockAdvancingRunner struct {
+	inner *fakeRunner
+	clock *lockedClock
+	step  time.Duration
+}
+
+func (r *clockAdvancingRunner) Mutate(ctx context.Context, mutation Mutation) (MutationOutcome, error) {
+	return r.inner.Mutate(ctx, mutation)
+}
+
+func (r *clockAdvancingRunner) Inspect(ctx context.Context, inspection Inspection) (Observation, error) {
+	observation, err := r.inner.Inspect(ctx, inspection)
+	// This deliberately changes the executor clock while Runner.Inspect is
+	// running. The runner can return only parsed state; Service must bind the
+	// before/after window itself.
+	r.clock.Set(r.clock.Now().Add(r.step))
+	return observation, err
+}
+
+func TestFreshResultV2BindsExecutorOwnedReadbackWindow(t *testing.T) {
+	f := newFixture(t)
+	runner := &clockAdvancingRunner{inner: f.runner, clock: f.clock, step: 10 * time.Millisecond}
+	f.service = f.newService(f.journal, runner, f.resultSigner)
+	signed := f.signed(capability.OperationAdd, 73)
+
+	result, err := f.service.Process(context.Background(), signed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	value := f.verifiedResult(signed, result)
+	if value.SchemaVersion != capability.ResultV2SchemaVersion ||
+		value.ReadbackStartedAt == nil || value.ReadbackCompletedAt == nil {
+		t.Fatalf("fresh result did not bind v2 read-back window: %+v", value)
+	}
+	if want := f.base.Add(10 * time.Millisecond); !value.ReadbackStartedAt.Equal(want) {
+		t.Fatalf("readback started at %s, want executor clock %s", value.ReadbackStartedAt, want)
+	}
+	if want := f.base.Add(20 * time.Millisecond); !value.ReadbackCompletedAt.Equal(want) {
+		t.Fatalf("readback completed at %s, want executor clock %s", value.ReadbackCompletedAt, want)
+	}
+	if value.StartedAt.After(*value.ReadbackStartedAt) || value.CompletedAt.Before(*value.ReadbackCompletedAt) {
+		t.Fatalf("result timestamps do not contain read-back window: %+v", value)
+	}
+}
+
 func TestConcurrentExactDuplicatesMutateOnce(t *testing.T) {
 	f := newFixture(t)
 	signed := f.signed(capability.OperationAdd, 2)
@@ -441,7 +486,10 @@ func TestPermitDeadlineFailureIsJournaledWithoutMutation(t *testing.T) {
 	var calls int
 	f.service.clock = func() time.Time {
 		calls++
-		if calls <= 2 {
+		// The preflight read-back owns two executor clock samples. Advance only
+		// for Permit.TakeAddAt so this continues to exercise a durable,
+		// non-mutating deadline terminal result.
+		if calls <= 4 {
 			return f.base
 		}
 		return f.base.Add(2 * time.Second)

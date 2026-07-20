@@ -112,6 +112,69 @@ func TestResultSigningBindingAndCopies(t *testing.T) {
 	}
 }
 
+func TestResultVerifierRejectsOversizedCanonicalBytes(t *testing.T) {
+	private := keyFromSeed(t, resultSeedHex)
+	verifier, err := NewResultVerifier("executor-result-v1", "executor-demo", private.Public().(ed25519.PublicKey))
+	if err != nil {
+		t.Fatal(err)
+	}
+	signed := NewUntrustedSignedResult(
+		"executor-result-v1",
+		"executor-demo",
+		bytes.Repeat([]byte("x"), MaxResultBytes+1),
+		make([]byte, ed25519.SignatureSize),
+	)
+	if _, err := verifier.Verify(signed); err == nil {
+		t.Fatal("oversized canonical result accepted")
+	}
+}
+
+func TestV2ResultBindsReadbackBracketAndUsesSeparateSignatureDomain(t *testing.T) {
+	verifiedCapability := testVerifiedAdd(t)
+	value := testAppliedResult(verifiedCapability)
+	value.SchemaVersion = ResultV2SchemaVersion
+	readbackStarted := value.StartedAt.Add(10 * time.Millisecond)
+	readbackCompleted := readbackStarted.Add(20 * time.Millisecond)
+	value.ReadbackStartedAt = &readbackStarted
+	value.ReadbackCompletedAt = &readbackCompleted
+	checked, err := CheckResult(value)
+	if err != nil {
+		t.Fatal(err)
+	}
+	private := keyFromSeed(t, resultSeedHex)
+	signer, _ := NewResultSigner("executor-result-v1", "executor-demo", private)
+	signed, err := signer.SignFor(verifiedCapability, checked)
+	if err != nil {
+		t.Fatal(err)
+	}
+	verifier, _ := NewResultVerifier("executor-result-v1", "executor-demo", private.Public().(ed25519.PublicKey))
+	if _, err := verifier.Verify(signed); err != nil {
+		t.Fatal(err)
+	}
+	if ed25519.Verify(private.Public().(ed25519.PublicKey), signingInput(ResultSigningDomain, signed.CanonicalBytes()), signed.Signature()) {
+		t.Fatal("v2 signature verified under the v1 domain")
+	}
+
+	for _, mutate := range []func(*Result){
+		func(result *Result) { result.ReadbackStartedAt = nil },
+		func(result *Result) { result.ReadbackCompletedAt = nil },
+		func(result *Result) {
+			late := result.CompletedAt.Add(time.Millisecond)
+			result.ReadbackCompletedAt = &late
+		},
+		func(result *Result) {
+			early := result.StartedAt.Add(-time.Millisecond)
+			result.ReadbackStartedAt = &early
+		},
+	} {
+		invalid := cloneResultValue(value)
+		mutate(&invalid)
+		if _, err := CheckResult(invalid); err == nil {
+			t.Fatal("invalid v2 readback bracket accepted")
+		}
+	}
+}
+
 func TestResultBindingUsesActualPostExpiryRecoveryTime(t *testing.T) {
 	verifiedCapability := testVerifiedAdd(t)
 	late := verifiedCapability.Value().ExpiresAt.Add(time.Hour)

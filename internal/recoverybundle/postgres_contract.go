@@ -56,11 +56,13 @@ var postgresRelations = []postgresRelationContract{
 	{name: "sentinelflow.dispatch_operations", kind: 'r', persistence: 'p'},
 	{name: "sentinelflow.enforcement_actions", kind: 'r', persistence: 'p'},
 	{name: "sentinelflow.enforcement_authorizations", kind: 'r', persistence: 'p'},
+	{name: "sentinelflow.enforcement_expiry_bounds_000034", kind: 'r', persistence: 'p'},
 	{name: "sentinelflow.evidence_snapshot_artifacts", kind: 'r', persistence: 'p'},
 	{name: "sentinelflow.evidence_snapshot_events", kind: 'r', persistence: 'p'},
 	{name: "sentinelflow.evidence_snapshot_signals", kind: 'r', persistence: 'p'},
 	{name: "sentinelflow.evidence_snapshots", kind: 'r', persistence: 'p'},
 	{name: "sentinelflow.execution_capabilities", kind: 'r', persistence: 'p'},
+	{name: "sentinelflow.execution_result_readback_bounds_000034", kind: 'r', persistence: 'p'},
 	{name: "sentinelflow.execution_results", kind: 'r', persistence: 'p'},
 	{name: "sentinelflow.expected_source_binding_retirements", kind: 'r', persistence: 'p'},
 	{name: "sentinelflow.expected_source_bindings", kind: 'r', persistence: 'p'},
@@ -277,6 +279,8 @@ SELECT json_build_object(
     'remaining_ttl_seconds', result.remaining_ttl_seconds,
     'owned_schema_digest', result.owned_schema_digest::text,
     'started_at', to_char(result.started_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
+    'readback_started_at', to_char(bounds.readback_started_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
+    'readback_completed_at', to_char(bounds.readback_completed_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
     'completed_at', to_char(result.completed_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
     'journal_sequence', result.journal_sequence, 'error_code', result.error_code,
     'result_jcs_hex', encode(result.result_jcs, 'hex'),
@@ -300,6 +304,8 @@ SELECT json_build_object(
 )::text
 FROM sentinelflow.execution_capabilities capability
 LEFT JOIN sentinelflow.execution_results result USING (capability_id)
+LEFT JOIN sentinelflow.execution_result_readback_bounds_000034 bounds
+  ON bounds.result_id = result.result_id
 LEFT JOIN sentinelflow.lifecycle_result_applications_000026 application
   ON application.result_id = result.result_id
 LEFT JOIN sentinelflow.outbox_jobs job ON job.job_id = capability.job_id

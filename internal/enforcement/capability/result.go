@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/ed25519"
 	"crypto/subtle"
+	"encoding/json"
 	"net/netip"
 	"time"
 )
@@ -24,6 +25,8 @@ type resultWire struct {
 	RemainingTTLSeconds *uint64 `json:"remaining_ttl_seconds"`
 	OwnedSchemaDigest   string  `json:"owned_schema_digest"`
 	StartedAt           string  `json:"started_at"`
+	ReadbackStartedAt   *string `json:"readback_started_at"`
+	ReadbackCompletedAt *string `json:"readback_completed_at"`
 	CompletedAt         string  `json:"completed_at"`
 	JournalSequence     uint64  `json:"journal_sequence"`
 	ErrorCode           string  `json:"error_code"`
@@ -32,8 +35,19 @@ type resultWire struct {
 // CheckResult validates semantic outcome combinations and freezes JCS bytes.
 func CheckResult(input Result) (CheckedResult, error) {
 	value := cloneResultValue(input)
+	if value.SchemaVersion == "" {
+		value.SchemaVersion = ResultSchemaVersion
+	}
 	value.StartedAt = input.StartedAt.UTC()
 	value.CompletedAt = input.CompletedAt.UTC()
+	if value.ReadbackStartedAt != nil {
+		started := value.ReadbackStartedAt.UTC()
+		value.ReadbackStartedAt = &started
+	}
+	if value.ReadbackCompletedAt != nil {
+		completed := value.ReadbackCompletedAt.UTC()
+		value.ReadbackCompletedAt = &completed
+	}
 	if err := checkResultValue(value); err != nil {
 		return CheckedResult{}, err
 	}
@@ -42,6 +56,13 @@ func CheckResult(input Result) (CheckedResult, error) {
 }
 
 func checkResultValue(value ResultValue) error {
+	if value.SchemaVersion != ResultSchemaVersion && value.SchemaVersion != ResultV2SchemaVersion {
+		return reject(ErrorSchema)
+	}
+	if value.SchemaVersion == ResultSchemaVersion &&
+		(value.ReadbackStartedAt != nil || value.ReadbackCompletedAt != nil) {
+		return reject(ErrorSchema)
+	}
 	if !uuidPattern.MatchString(value.ResultID) || !uuidPattern.MatchString(value.CapabilityID) ||
 		!uuidPattern.MatchString(value.ActionID) {
 		return reject(ErrorIdentity)
@@ -74,6 +95,16 @@ func checkResultValue(value ResultValue) error {
 		!millisecondAligned(value.StartedAt) || !millisecondAligned(value.CompletedAt) ||
 		value.CompletedAt.Sub(value.StartedAt) > 2*time.Second {
 		return reject(ErrorTime)
+	}
+	if value.SchemaVersion == ResultV2SchemaVersion {
+		if value.ReadbackStartedAt == nil || value.ReadbackCompletedAt == nil ||
+			value.ReadbackStartedAt.IsZero() || value.ReadbackCompletedAt.IsZero() ||
+			!millisecondAligned(*value.ReadbackStartedAt) || !millisecondAligned(*value.ReadbackCompletedAt) ||
+			value.ReadbackStartedAt.Before(value.StartedAt) ||
+			value.ReadbackCompletedAt.Before(*value.ReadbackStartedAt) ||
+			value.ReadbackCompletedAt.After(value.CompletedAt) {
+			return reject(ErrorTime)
+		}
 	}
 	if err := checkOutcome(value); err != nil {
 		return err
@@ -162,7 +193,7 @@ func ParseCanonicalResult(data []byte) (CheckedResult, error) {
 	if err := strictDecode(data, MaxResultBytes, &wire); err != nil {
 		return CheckedResult{}, err
 	}
-	if wire.SchemaVersion != ResultSchemaVersion {
+	if wire.SchemaVersion != ResultSchemaVersion && wire.SchemaVersion != ResultV2SchemaVersion {
 		return CheckedResult{}, reject(ErrorSchema)
 	}
 	startedAt, startedOK := parseCanonicalTime(wire.StartedAt)
@@ -170,24 +201,39 @@ func ParseCanonicalResult(data []byte) (CheckedResult, error) {
 	if !startedOK || !completedOK {
 		return CheckedResult{}, reject(ErrorTime)
 	}
+	var readbackStartedAt, readbackCompletedAt *time.Time
+	if wire.SchemaVersion == ResultV2SchemaVersion {
+		if wire.ReadbackStartedAt == nil || wire.ReadbackCompletedAt == nil {
+			return CheckedResult{}, reject(ErrorTime)
+		}
+		started, startedOK := parseCanonicalTime(*wire.ReadbackStartedAt)
+		completed, completedOK := parseCanonicalTime(*wire.ReadbackCompletedAt)
+		if !startedOK || !completedOK {
+			return CheckedResult{}, reject(ErrorTime)
+		}
+		readbackStartedAt, readbackCompletedAt = &started, &completed
+	} else if wire.ReadbackStartedAt != nil || wire.ReadbackCompletedAt != nil {
+		return CheckedResult{}, reject(ErrorSchema)
+	}
 	var exitClass *NFTExitClass
 	if wire.NFTExitClass != nil {
 		converted := NFTExitClass(*wire.NFTExitClass)
 		exitClass = &converted
 	}
 	checked, err := CheckResult(Result{
-		ResultID: wire.ResultID, CapabilityID: wire.CapabilityID, CapabilityDigest: wire.CapabilityDigest,
+		SchemaVersion: wire.SchemaVersion,
+		ResultID:      wire.ResultID, CapabilityID: wire.CapabilityID, CapabilityDigest: wire.CapabilityDigest,
 		Operation: Operation(wire.Operation), ActionID: wire.ActionID, ArtifactDigest: wire.ArtifactDigest,
 		TargetIPv4: wire.TargetIPv4, Classification: Classification(wire.Classification), NFTExitClass: exitClass,
 		ReadbackState: ReadbackState(wire.ReadbackState), ElementHandle: wire.ElementHandle,
 		RemainingTTLSeconds: wire.RemainingTTLSeconds, OwnedSchemaDigest: wire.OwnedSchemaDigest,
-		StartedAt: startedAt, CompletedAt: completedAt, JournalSequence: wire.JournalSequence,
+		StartedAt: startedAt, ReadbackStartedAt: readbackStartedAt, ReadbackCompletedAt: readbackCompletedAt, CompletedAt: completedAt, JournalSequence: wire.JournalSequence,
 		ErrorCode: ResultErrorCode(wire.ErrorCode),
 	})
 	if err != nil {
 		return CheckedResult{}, err
 	}
-	expected := marshalResultTimes(checked.value, wire.StartedAt, wire.CompletedAt)
+	expected := marshalResultTimes(checked.value, wire.StartedAt, wire.ReadbackStartedAt, wire.ReadbackCompletedAt, wire.CompletedAt)
 	if !bytes.Equal(data, expected) {
 		return CheckedResult{}, reject(ErrorCanonical)
 	}
@@ -197,10 +243,19 @@ func ParseCanonicalResult(data []byte) (CheckedResult, error) {
 }
 
 func marshalResult(value ResultValue) []byte {
-	return marshalResultTimes(value, formatCanonicalTime(value.StartedAt), formatCanonicalTime(value.CompletedAt))
+	var readbackStarted, readbackCompleted *string
+	if value.ReadbackStartedAt != nil {
+		formatted := formatCanonicalTime(*value.ReadbackStartedAt)
+		readbackStarted = &formatted
+	}
+	if value.ReadbackCompletedAt != nil {
+		formatted := formatCanonicalTime(*value.ReadbackCompletedAt)
+		readbackCompleted = &formatted
+	}
+	return marshalResultTimes(value, formatCanonicalTime(value.StartedAt), readbackStarted, readbackCompleted, formatCanonicalTime(value.CompletedAt))
 }
 
-func marshalResultTimes(value ResultValue, startedAt, completedAt string) []byte {
+func marshalResultTimes(value ResultValue, startedAt string, readbackStartedAt, readbackCompletedAt *string, completedAt string) []byte {
 	result := make([]byte, 0, 1300)
 	result = append(result, `{"action_id":`...)
 	result = appendString(result, value.ActionID)
@@ -230,13 +285,29 @@ func marshalResultTimes(value ResultValue, startedAt, completedAt string) []byte
 	result = appendString(result, string(value.Operation))
 	result = append(result, `,"owned_schema_digest":`...)
 	result = appendString(result, value.OwnedSchemaDigest)
+	if value.SchemaVersion == ResultV2SchemaVersion {
+		result = append(result, `,"readback_completed_at":`...)
+		if readbackCompletedAt == nil {
+			result = append(result, "null"...)
+		} else {
+			result = appendString(result, *readbackCompletedAt)
+		}
+		result = append(result, `,"readback_started_at":`...)
+		if readbackStartedAt == nil {
+			result = append(result, "null"...)
+		} else {
+			result = appendString(result, *readbackStartedAt)
+		}
+	}
 	result = append(result, `,"readback_state":`...)
 	result = appendString(result, string(value.ReadbackState))
 	result = append(result, `,"remaining_ttl_seconds":`...)
 	result = appendNullableUint(result, value.RemainingTTLSeconds)
 	result = append(result, `,"result_id":`...)
 	result = appendString(result, value.ResultID)
-	result = append(result, `,"schema_version":"execution-result-v1","started_at":`...)
+	result = append(result, `,"schema_version":`...)
+	result = appendString(result, value.SchemaVersion)
+	result = append(result, `,"started_at":`...)
 	result = appendString(result, startedAt)
 	result = append(result, `,"target_ipv4":`...)
 	result = appendString(result, value.TargetIPv4)
@@ -266,7 +337,11 @@ func (s ResultSigner) SignFor(capability VerifiedCapability, checked CheckedResu
 	if err := bindResult(checked.value, capability, s.executorID); err != nil {
 		return SignedResult{}, err
 	}
-	signature := ed25519.Sign(s.key, signingInput(ResultSigningDomain, checked.canonical))
+	domain, ok := resultSigningDomain(checked.value.SchemaVersion)
+	if !ok {
+		return SignedResult{}, reject(ErrorSchema)
+	}
+	signature := ed25519.Sign(s.key, signingInput(domain, checked.canonical))
 	return SignedResult{keyID: s.keyID, executorID: s.executorID, canonical: clone(checked.canonical), signature: signature}, nil
 }
 
@@ -299,8 +374,12 @@ func (v ResultVerifier) Verify(signed SignedResult) (VerifiedResult, error) {
 		return VerifiedResult{}, reject(ErrorKeyRole)
 	}
 	if len(signed.canonical) == 0 || len(signed.canonical) > MaxResultBytes ||
-		len(signed.signature) != ed25519.SignatureSize ||
-		!ed25519.Verify(v.key, signingInput(ResultSigningDomain, signed.canonical), signed.signature) {
+		len(signed.signature) != ed25519.SignatureSize {
+		return VerifiedResult{}, reject(ErrorSignature)
+	}
+	domain, ok := resultSigningDomainFromCanonical(signed.canonical)
+	if !ok ||
+		!ed25519.Verify(v.key, signingInput(domain, signed.canonical), signed.signature) {
 		return VerifiedResult{}, reject(ErrorSignature)
 	}
 	checked, err := ParseCanonicalResult(signed.canonical)
@@ -308,6 +387,27 @@ func (v ResultVerifier) Verify(signed SignedResult) (VerifiedResult, error) {
 		return VerifiedResult{}, err
 	}
 	return VerifiedResult{value: checked.value, canonical: clone(checked.canonical), digest: checked.digest, keyID: v.keyID, executorID: v.executorID}, nil
+}
+
+func resultSigningDomain(schemaVersion string) (string, bool) {
+	switch schemaVersion {
+	case ResultSchemaVersion:
+		return ResultSigningDomain, true
+	case ResultV2SchemaVersion:
+		return ResultV2SigningDomain, true
+	default:
+		return "", false
+	}
+}
+
+func resultSigningDomainFromCanonical(data []byte) (string, bool) {
+	var header struct {
+		SchemaVersion string `json:"schema_version"`
+	}
+	if err := json.Unmarshal(data, &header); err != nil {
+		return "", false
+	}
+	return resultSigningDomain(header.SchemaVersion)
 }
 
 // BindTo checks the signed result against the exact verified request.

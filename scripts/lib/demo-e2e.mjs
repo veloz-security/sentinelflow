@@ -11,10 +11,17 @@ import { pathToFileURL } from 'node:url';
 
 const JSON_LIMIT = 1024 * 1024;
 const JOURNAL_LIMIT = 64 * 1024 * 1024;
+const AUDIT_PAGE_LIMIT = 100;
+// A healthy release-expiry action schedules read-only inspection no more than
+// once every 30 seconds. This deliberately generous bound admits retry
+// evidence too, while preventing an unbounded control-plane read from masking
+// a truncated audit proof.
+const MAX_ACTION_AUDIT_PAGES = 64;
 const POLL_INTERVAL_MS = 1_000;
 const API_TIMEOUT_MS = 10_000;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const DIGEST = /^sha256:[0-9a-f]{64}$/;
+const AUDIT_CURSOR = /^a1\.[A-Za-z0-9_-]{11}$/;
 const IPV4 = /^(?:0|[1-9][0-9]{0,2})(?:\.(?:0|[1-9][0-9]{0,2})){3}$/;
 const TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?Z$/;
 const MILLISECOND_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
@@ -34,6 +41,10 @@ const COVERAGE_READINESS_MARGIN_SECONDS = 5;
 const COVERAGE_READINESS_REQUIRED_SECONDS = 305;
 const DETECTION_STABILITY_SCHEMA = 'sentinelflow-demo-e2e-detection-stability-v1';
 const DETECTION_DIAGNOSTIC_SCHEMA = 'sentinelflow-demo-e2e-detection-diagnostic-v3';
+const EXPIRY_DIAGNOSTIC_SCHEMA = 'sentinelflow-demo-e2e-expiry-diagnostic-v1';
+const EXPIRY_DIAGNOSTIC_MAX_RESULTS = 16;
+const EXPIRY_DIAGNOSTIC_MAX_SCHEDULES = 16;
+const EXPIRY_DIAGNOSTIC_MAX_AUDIT = 24;
 const DIAGNOSTIC_GATE_NAMES = Object.freeze([
   'structured_output', 'command_grammar', 'policy_evidence_command_consistency',
   'protected_network', 'owned_schema_syntax', 'historical_impact',
@@ -351,6 +362,22 @@ function integer(value, minimum, maximum, label) {
 function string(value, pattern, label) {
   invariant(typeof value === 'string' && pattern.test(value), `${label} is invalid`);
   return value;
+}
+
+function auditCursor(value, label) {
+  const checked = string(value, AUDIT_CURSOR, label);
+  const encoded = checked.slice('a1.'.length);
+  let bytes;
+  try {
+    bytes = Buffer.from(encoded, 'base64url');
+  } catch {
+    throw new Error(`${label} is invalid`);
+  }
+  const sequence = bytes.length === 8 ? bytes.readBigUInt64BE(0) : 0n;
+  invariant(bytes.length === 8 && sequence > 0n && sequence <= BigInt(Number.MAX_SAFE_INTEGER) &&
+    bytes.toString('base64url') === encoded,
+    `${label} is invalid`);
+  return Object.freeze({ value: checked, sequence: Number(sequence) });
 }
 
 function timestamp(value, label) {
@@ -1256,6 +1283,155 @@ export function validateDetectionDiagnostic(databaseValue, detectorValue, valida
     detector,
     validationworker,
     sources: database.sources,
+  });
+}
+
+function expiryDiagnosticTimestamp(value, label) {
+  if (value === null) return null;
+  return timestamp(value, label);
+}
+
+function validateExpiryDiagnosticRuntime(value, service) {
+  const runtime = exactRecord(value, `expiry diagnostic ${service}`, ['running', 'restart_count']);
+  invariant(typeof runtime.running === 'boolean', `expiry diagnostic ${service} state is invalid`);
+  integer(runtime.restart_count, 0, 1_000_000, `expiry diagnostic ${service} restart count`);
+  return Object.freeze(runtime);
+}
+
+// This intentionally projects only lifecycle metadata.  It never includes JCS,
+// signatures, capabilities, request data, account data, or container metadata.
+export function validateExpiryDiagnostic(databaseValue, runtimeValue) {
+  const database = exactRecord(databaseValue, 'expiry diagnostic database', [
+    'schema_version', 'action', 'expiry_bounds', 'results', 'schedules', 'audit',
+  ]);
+  invariant(database.schema_version === EXPIRY_DIAGNOSTIC_SCHEMA,
+    'expiry diagnostic schema drifted');
+  let action = null;
+  if (database.action !== null) {
+    const raw = exactRecord(database.action, 'expiry diagnostic action', [
+      'target_ipv4', 'state', 'version', 'queued_at', 'applied_at', 'expected_expires_at',
+      'finished_at', 'updated_at',
+    ]);
+    action = Object.freeze({
+      target_ipv4: string(raw.target_ipv4, IPV4, 'expiry diagnostic target'),
+      state: string(raw.state, /^(?:approved|queued|active|expired|failed|revoked|indeterminate)$/,
+        'expiry diagnostic action state'),
+      version: integer(raw.version, 1, 2_147_483_647, 'expiry diagnostic action version'),
+      queued_at: expiryDiagnosticTimestamp(raw.queued_at, 'expiry diagnostic queued_at'),
+      applied_at: expiryDiagnosticTimestamp(raw.applied_at, 'expiry diagnostic applied_at'),
+      expected_expires_at: expiryDiagnosticTimestamp(raw.expected_expires_at,
+        'expiry diagnostic expected_expires_at'),
+      finished_at: expiryDiagnosticTimestamp(raw.finished_at, 'expiry diagnostic finished_at'),
+      updated_at: expiryDiagnosticTimestamp(raw.updated_at, 'expiry diagnostic updated_at'),
+    });
+  }
+
+  let expiryBounds = null;
+  if (database.expiry_bounds !== null) {
+    const raw = exactRecord(database.expiry_bounds, 'expiry diagnostic bounds', [
+      'source_result_digest', 'expires_not_before', 'expires_not_after',
+    ]);
+    const lower = timestamp(raw.expires_not_before, 'expiry diagnostic lower expiry bound');
+    const upper = timestamp(raw.expires_not_after, 'expiry diagnostic upper expiry bound');
+    invariant(Date.parse(upper) > Date.parse(lower), 'expiry diagnostic bounds are invalid');
+    expiryBounds = Object.freeze({
+      source_result_digest: string(raw.source_result_digest, DIGEST, 'expiry diagnostic source result digest'),
+      expires_not_before: lower,
+      expires_not_after: upper,
+    });
+  }
+
+  invariant(Array.isArray(database.results) && database.results.length <= EXPIRY_DIAGNOSTIC_MAX_RESULTS,
+    'expiry diagnostic results are invalid');
+  const results = database.results.map((raw, index) => {
+    const item = exactRecord(raw, `expiry diagnostic result ${index}`, [
+      'schema_version', 'operation', 'classification', 'readback_state', 'remaining_ttl_seconds',
+      'started_at', 'completed_at', 'persisted_at', 'readback_started_at', 'readback_completed_at',
+      'result_digest',
+    ]);
+    invariant(['execution-result-v1', 'execution-result-v2'].includes(item.schema_version),
+      `expiry diagnostic result ${index} schema is invalid`);
+    invariant(['add', 'revoke', 'inspect'].includes(item.operation),
+      `expiry diagnostic result ${index} operation is invalid`);
+    invariant([
+      'applied', 'recovered_active', 'revoked', 'inspect_active', 'inspect_absent',
+      'inspect_mismatch', 'failed', 'indeterminate',
+    ].includes(item.classification), `expiry diagnostic result ${index} classification is invalid`);
+    invariant(['active', 'absent', 'mismatch', 'unavailable'].includes(item.readback_state),
+      `expiry diagnostic result ${index} read-back state is invalid`);
+    if (item.remaining_ttl_seconds !== null) {
+      integer(item.remaining_ttl_seconds, 0, 86_400, `expiry diagnostic result ${index} remaining TTL`);
+    }
+    const started = timestamp(item.started_at, `expiry diagnostic result ${index} started_at`);
+    const completed = timestamp(item.completed_at, `expiry diagnostic result ${index} completed_at`);
+    const persisted = timestamp(item.persisted_at, `expiry diagnostic result ${index} persisted_at`);
+    const readbackStarted = expiryDiagnosticTimestamp(item.readback_started_at,
+      `expiry diagnostic result ${index} readback_started_at`);
+    const readbackCompleted = expiryDiagnosticTimestamp(item.readback_completed_at,
+      `expiry diagnostic result ${index} readback_completed_at`);
+    invariant((readbackStarted === null) === (readbackCompleted === null),
+      `expiry diagnostic result ${index} read-back interval is incomplete`);
+    if (readbackStarted !== null) {
+      invariant(Date.parse(readbackStarted) >= Date.parse(started) &&
+        Date.parse(readbackCompleted) >= Date.parse(readbackStarted) &&
+        Date.parse(readbackCompleted) <= Date.parse(completed),
+      `expiry diagnostic result ${index} read-back interval is invalid`);
+    }
+    return Object.freeze({ ...item, started_at: started, completed_at: completed, persisted_at: persisted,
+      readback_started_at: readbackStarted, readback_completed_at: readbackCompleted,
+      result_digest: string(item.result_digest, DIGEST, `expiry diagnostic result ${index} digest`) });
+  });
+
+  invariant(Array.isArray(database.schedules) && database.schedules.length <= EXPIRY_DIAGNOSTIC_MAX_SCHEDULES,
+    'expiry diagnostic schedules are invalid');
+  const schedules = database.schedules.map((raw, index) => {
+    const item = exactRecord(raw, `expiry diagnostic schedule ${index}`, [
+      'purpose', 'state', 'due_at', 'attempts', 'last_error_code', 'last_error_digest',
+      'source_result_digest', 'updated_at',
+    ]);
+    invariant(['reconciliation', 'expiry_confirmation', 'operator_status'].includes(item.purpose) &&
+      ['pending', 'leased', 'retry', 'dispatched', 'completed', 'dead'].includes(item.state),
+    `expiry diagnostic schedule ${index} identity is invalid`);
+    integer(item.attempts, 0, 8, `expiry diagnostic schedule ${index} attempts`);
+    if (item.last_error_code !== null) string(item.last_error_code, /^[a-z][a-z0-9_]{0,63}$/,
+      `expiry diagnostic schedule ${index} error code`);
+    if (item.last_error_digest !== null) string(item.last_error_digest, DIGEST,
+      `expiry diagnostic schedule ${index} error digest`);
+    return Object.freeze({ ...item,
+      due_at: timestamp(item.due_at, `expiry diagnostic schedule ${index} due_at`),
+      updated_at: timestamp(item.updated_at, `expiry diagnostic schedule ${index} updated_at`),
+      source_result_digest: string(item.source_result_digest, DIGEST,
+        `expiry diagnostic schedule ${index} source result digest`),
+    });
+  });
+
+  invariant(Array.isArray(database.audit) && database.audit.length <= EXPIRY_DIAGNOSTIC_MAX_AUDIT,
+    'expiry diagnostic audit is invalid');
+  const audit = database.audit.map((raw, index) => {
+    const item = exactRecord(raw, `expiry diagnostic audit ${index}`, [
+      'action', 'outcome', 'primary_digest', 'secondary_digest', 'recorded_at',
+    ]);
+    string(item.action, /^[a-z][a-z0-9_]{0,127}$/, `expiry diagnostic audit ${index} action`);
+    invariant(['accepted', 'rejected', 'succeeded', 'failed', 'indeterminate'].includes(item.outcome),
+      `expiry diagnostic audit ${index} outcome is invalid`);
+    if (item.primary_digest !== null) string(item.primary_digest, DIGEST,
+      `expiry diagnostic audit ${index} primary digest`);
+    if (item.secondary_digest !== null) string(item.secondary_digest, DIGEST,
+      `expiry diagnostic audit ${index} secondary digest`);
+    return Object.freeze({ ...item,
+      recorded_at: timestamp(item.recorded_at, `expiry diagnostic audit ${index} recorded_at`),
+    });
+  });
+
+  const runtime = exactRecord(runtimeValue, 'expiry diagnostic runtime', [
+    'dispatcher', 'executor', 'lifecycleworker',
+  ]);
+  return Object.freeze({
+    schema_version: database.schema_version, action, expiry_bounds: expiryBounds,
+    results: Object.freeze(results), schedules: Object.freeze(schedules), audit: Object.freeze(audit),
+    dispatcher: validateExpiryDiagnosticRuntime(runtime.dispatcher, 'dispatcher'),
+    executor: validateExpiryDiagnosticRuntime(runtime.executor, 'executor'),
+    lifecycleworker: validateExpiryDiagnosticRuntime(runtime.lifecycleworker, 'lifecycleworker'),
   });
 }
 
@@ -2250,6 +2426,85 @@ FROM summaries source
 COMMIT;
 `;
 
+// `action_id` is a psql value supplied only after the private demo state has
+// been structurally validated.  This is deliberately a narrow, read-only
+// projection for an expiry convergence failure, not a general audit export.
+const EXPIRY_DIAGNOSTIC_SQL = `BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY;
+SET LOCAL statement_timeout = '10s';
+SET LOCAL lock_timeout = '2s';
+SET LOCAL search_path = pg_catalog, sentinelflow;
+COPY (
+WITH selected_action AS (
+  SELECT action.*
+  FROM sentinelflow.enforcement_actions action
+  WHERE action.action_id = :'action_id'::uuid
+), result_rows AS (
+  SELECT result.*, bounds.readback_started_at, bounds.readback_completed_at
+  FROM sentinelflow.execution_results result
+  JOIN selected_action action ON action.action_id = result.action_id
+  LEFT JOIN sentinelflow.execution_result_readback_bounds_000034 bounds USING (result_id)
+  ORDER BY result.persisted_at DESC, result.result_id DESC
+  LIMIT ${EXPIRY_DIAGNOSTIC_MAX_RESULTS}
+), schedule_rows AS (
+  SELECT schedule.*, source.result_digest AS source_result_digest_bound
+  FROM sentinelflow.lifecycle_inspection_schedules_000026 schedule
+  JOIN selected_action action ON action.action_id = schedule.action_id
+  JOIN sentinelflow.execution_results source ON source.result_id = schedule.source_result_id
+  ORDER BY schedule.updated_at DESC, schedule.schedule_id DESC
+  LIMIT ${EXPIRY_DIAGNOSTIC_MAX_SCHEDULES}
+), audit_rows AS (
+  SELECT audit.*
+  FROM sentinelflow.audit_events audit
+  JOIN selected_action action ON action.action_id = audit.enforcement_action_id
+  ORDER BY audit.recorded_at DESC, audit.sequence DESC
+  LIMIT ${EXPIRY_DIAGNOSTIC_MAX_AUDIT}
+)
+SELECT jsonb_build_object(
+  'schema_version', '${EXPIRY_DIAGNOSTIC_SCHEMA}',
+  'action', (SELECT jsonb_build_object(
+    'target_ipv4', host(action.target_ipv4), 'state', action.state, 'version', action.version,
+    'queued_at', CASE WHEN action.queued_at IS NULL THEN NULL ELSE to_char(action.queued_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') END,
+    'applied_at', CASE WHEN action.applied_at IS NULL THEN NULL ELSE to_char(action.applied_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') END,
+    'expected_expires_at', CASE WHEN action.expected_expires_at IS NULL THEN NULL ELSE to_char(action.expected_expires_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') END,
+    'finished_at', CASE WHEN action.finished_at IS NULL THEN NULL ELSE to_char(action.finished_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') END,
+    'updated_at', to_char(action.updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+  ) FROM selected_action action),
+  'expiry_bounds', (SELECT jsonb_build_object(
+    'source_result_digest', source.result_digest::text,
+    'expires_not_before', to_char(bounds.expires_not_before AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+    'expires_not_after', to_char(bounds.expires_not_after AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+  ) FROM sentinelflow.enforcement_expiry_bounds_000034 bounds
+    JOIN sentinelflow.execution_results source ON source.result_id = bounds.source_result_id
+    JOIN selected_action action ON action.action_id = bounds.action_id),
+  'results', COALESCE((SELECT jsonb_agg(jsonb_build_object(
+    'schema_version', result.schema_version, 'operation', result.operation,
+    'classification', result.classification, 'readback_state', result.readback_state,
+    'remaining_ttl_seconds', result.remaining_ttl_seconds,
+    'started_at', to_char(result.started_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+    'completed_at', to_char(result.completed_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+    'persisted_at', to_char(result.persisted_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+    'readback_started_at', CASE WHEN result.readback_started_at IS NULL THEN NULL ELSE to_char(result.readback_started_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') END,
+    'readback_completed_at', CASE WHEN result.readback_completed_at IS NULL THEN NULL ELSE to_char(result.readback_completed_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') END,
+    'result_digest', result.result_digest::text
+  ) ORDER BY result.persisted_at DESC, result.result_id DESC) FROM result_rows result), '[]'::jsonb),
+  'schedules', COALESCE((SELECT jsonb_agg(jsonb_build_object(
+    'purpose', schedule.purpose, 'state', schedule.state,
+    'due_at', to_char(schedule.due_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+    'attempts', schedule.attempts, 'last_error_code', schedule.last_error_code::text,
+    'last_error_digest', schedule.last_error_digest::text,
+    'source_result_digest', schedule.source_result_digest_bound::text,
+    'updated_at', to_char(schedule.updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+  ) ORDER BY schedule.updated_at DESC, schedule.schedule_id DESC) FROM schedule_rows schedule), '[]'::jsonb),
+  'audit', COALESCE((SELECT jsonb_agg(jsonb_build_object(
+    'action', audit.action::text, 'outcome', audit.outcome,
+    'primary_digest', audit.primary_digest::text, 'secondary_digest', audit.secondary_digest::text,
+    'recorded_at', to_char(audit.recorded_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+  ) ORDER BY audit.recorded_at DESC, audit.sequence DESC) FROM audit_rows audit), '[]'::jsonb)
+)::text
+) TO STDOUT;
+COMMIT;
+`;
+
 async function readNDJSON(filename, label) {
   let source;
   try {
@@ -2591,11 +2846,17 @@ const CAPABILITY_FIELDS = Object.freeze([
   'evidence_snapshot_digest', 'validation_snapshot_digest', 'authorization_digest', 'actor_id',
   'reason_digest', 'owned_schema_digest', 'issued_at', 'not_before', 'expires_at', 'nonce',
 ]);
-const RESULT_FIELDS = Object.freeze([
+const RESULT_V1_FIELDS = Object.freeze([
   'schema_version', 'result_id', 'capability_id', 'capability_digest', 'operation', 'action_id',
   'artifact_digest', 'target_ipv4', 'classification', 'nft_exit_class', 'readback_state',
   'element_handle', 'remaining_ttl_seconds', 'owned_schema_digest', 'started_at', 'completed_at',
   'journal_sequence', 'error_code',
+]);
+const RESULT_V2_FIELDS = Object.freeze([
+  'schema_version', 'result_id', 'capability_id', 'capability_digest', 'operation', 'action_id',
+  'artifact_digest', 'target_ipv4', 'classification', 'nft_exit_class', 'readback_state',
+  'element_handle', 'remaining_ttl_seconds', 'owned_schema_digest', 'started_at', 'readback_started_at',
+  'readback_completed_at', 'completed_at', 'journal_sequence', 'error_code',
 ]);
 const JOURNAL_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 
@@ -2682,11 +2943,21 @@ function parseCapability(bytes, artifact, payload) {
 
 function parseResult(bytes, payload, capability, startedSequence) {
   invariant(bytes.length <= 16_384, 'journal result size is invalid');
-  const value = parseCanonicalObject(bytes, 'journal result', RESULT_FIELDS);
+  let raw;
+  try {
+    raw = JSON.parse(bytes.toString('utf8'));
+  } catch {
+    throw new Error('journal result is invalid');
+  }
+  invariant(raw !== null && typeof raw === 'object' && !Array.isArray(raw), 'journal result is invalid');
+  const fields = raw.schema_version === 'execution-result-v1' ? RESULT_V1_FIELDS
+    : raw.schema_version === 'execution-result-v2' ? RESULT_V2_FIELDS : null;
+  invariant(fields !== null, 'journal result schema is invalid');
+  const value = parseCanonicalObject(bytes, 'journal result', fields);
   const startedAt = journalTimestamp(value.started_at, 'result started_at');
   const completedAt = journalTimestamp(value.completed_at, 'result completed_at');
   invariant(
-    value.schema_version === 'execution-result-v1' && UUID.test(value.result_id) &&
+    ['execution-result-v1', 'execution-result-v2'].includes(value.schema_version) && UUID.test(value.result_id) &&
       value.capability_id === capability.capability_id && value.capability_digest === payload.capability_digest &&
       value.operation === capability.operation && value.action_id === capability.action_id &&
       value.artifact_digest === capability.artifact_digest && value.target_ipv4 === capability.target_ipv4 &&
@@ -2701,6 +2972,16 @@ function parseResult(bytes, payload, capability, startedSequence) {
       typeof value.error_code === 'string' && /^[a-z][a-z0-9_]{0,63}$/.test(value.error_code),
     'journal result binding is invalid',
   );
+  if (value.schema_version === 'execution-result-v2') {
+    const readbackStartedAt = journalTimestamp(value.readback_started_at, 'result readback_started_at');
+    const readbackCompletedAt = journalTimestamp(value.readback_completed_at, 'result readback_completed_at');
+    invariant(
+      Date.parse(readbackStartedAt) >= Date.parse(startedAt) &&
+        Date.parse(readbackCompletedAt) >= Date.parse(readbackStartedAt) &&
+        Date.parse(readbackCompletedAt) <= Date.parse(completedAt),
+      'journal result v2 read-back interval is invalid',
+    );
+  }
   const successful = {
     add: ['applied', 'recovered_active'], revoke: ['revoked'],
     inspect: ['inspect_active', 'inspect_absent', 'inspect_mismatch'],
@@ -3217,10 +3498,32 @@ function exactBinding(policy, operation = 'approve') {
   };
 }
 
-async function auditForAction(client, actionID) {
-  return auditItems(await client.request(
-    `/api/v1/audit-events?action_id=${encodeURIComponent(actionID)}&limit=100`,
-  ));
+export async function auditForAction(client, actionID) {
+  const checkedActionID = string(actionID, UUID, 'audit action ID');
+  const items = [];
+  const seenCursors = new Set();
+  let cursor;
+  let previousSequence = Number.MAX_SAFE_INTEGER;
+  for (let pageNumber = 0; pageNumber < MAX_ACTION_AUDIT_PAGES; pageNumber += 1) {
+    const query = `action_id=${encodeURIComponent(checkedActionID)}&limit=${AUDIT_PAGE_LIMIT}` +
+      (cursor === undefined ? '' : `&cursor=${encodeURIComponent(cursor)}`);
+    const page = auditPage(await client.request(`/api/v1/audit-events?${query}`), 'action audit page');
+    for (const item of page.items) {
+      invariant(item.sequence < previousSequence, 'action audit sequence is not strictly descending');
+      previousSequence = item.sequence;
+      items.push(item);
+    }
+    if (page.nextCursor === undefined) {
+      return items;
+    }
+    invariant(page.items.length === AUDIT_PAGE_LIMIT, 'action audit next cursor does not bind a full page');
+    invariant(page.nextCursorSequence === page.items.at(-1).sequence,
+      'action audit next cursor does not bind the final sequence');
+    invariant(!seenCursors.has(page.nextCursor), 'action audit cursor repeated');
+    seenCursors.add(page.nextCursor);
+    cursor = page.nextCursor;
+  }
+  throw new Error('action audit pagination exceeds strict bound');
 }
 
 async function auditForPolicy(client, policyID) {
@@ -3230,16 +3533,25 @@ async function auditForPolicy(client, policyID) {
 }
 
 function auditItems(value, options = {}) {
-  const page = exactRecord(value, 'audit page', ['items'], ['next_cursor']);
-  invariant(Array.isArray(page.items) && page.items.length <= 100, 'audit page items are invalid');
+  const page = auditPage(value, options.label ?? 'audit page', options);
   if (options.complete === true) {
-    invariant(!Object.hasOwn(page, 'next_cursor'), 'policy audit proof is paginated');
+    invariant(page.nextCursor === undefined, 'policy audit proof is paginated');
   }
+  return page.items;
+}
+
+function auditPage(value, pageLabel, options = {}) {
+  const page = exactRecord(value, 'audit page', ['items'], ['next_cursor']);
+  invariant(Array.isArray(page.items) && page.items.length <= AUDIT_PAGE_LIMIT, 'audit page items are invalid');
+  let nextCursor;
+  let nextCursorSequence;
   if (Object.hasOwn(page, 'next_cursor')) {
-    string(page.next_cursor, /^a1\.[A-Za-z0-9_-]{11}$/, 'audit next cursor');
+    const parsedCursor = auditCursor(page.next_cursor, `${pageLabel} next cursor`);
+    nextCursor = parsedCursor.value;
+    nextCursorSequence = parsedCursor.sequence;
   }
-  return page.items.map((raw, index) => {
-    const label = `audit item ${index}`;
+  const items = page.items.map((raw, index) => {
+    const label = `${pageLabel} item ${index}`;
     const item = exactRecord(raw, label, [
       'sequence', 'event_id', 'actor_type', 'actor_id', 'action', 'object_type',
       'outcome', 'occurred_at', 'recorded_at',
@@ -3270,6 +3582,7 @@ function auditItems(value, options = {}) {
     }
     return Object.freeze({ ...item });
   });
+  return Object.freeze({ items: Object.freeze(items), nextCursor, nextCursorSequence });
 }
 
 function parseAPIErrorCode(response, expected) {
@@ -4404,6 +4717,9 @@ async function main(args) {
     case 'write-detection-diagnostic-sql':
       await writePrivateText(option(args, '--output'), DETECTION_DIAGNOSTIC_SQL);
       return;
+    case 'write-expiry-diagnostic-sql':
+      await writePrivateText(option(args, '--output'), EXPIRY_DIAGNOSTIC_SQL);
+      return;
     case 'write-detection-stability-sql':
       await writePrivateText(option(args, '--output'), DETECTION_STABILITY_SQL);
       return;
@@ -4432,6 +4748,21 @@ async function main(args) {
         option(args, '--stage'),
       );
       process.stdout.write(`DEMO_E2E_DIAGNOSTIC ${canonicalJSON(summary)}\n`);
+      return;
+    }
+    case 'print-expiry-diagnostic': {
+      const summary = validateExpiryDiagnostic(
+        await readJSON(args[1], 'expiry diagnostic database snapshot'),
+        await readJSON(option(args, '--runtime'), 'expiry diagnostic runtime snapshot'),
+      );
+      process.stdout.write(`DEMO_E2E_EXPIRY_DIAGNOSTIC ${canonicalJSON(summary)}\n`);
+      return;
+    }
+    case 'print-expiry-action-id': {
+      const state = validateDemoState(await readJSON(option(args, '--state'), 'E2E state file'), true);
+      invariant(state.mode === 'release_expiry' && state.revocation === null,
+        'expiry diagnostic requires release expiry state');
+      process.stdout.write(`${state.action.action_id}\n`);
       return;
     }
     case 'print-coverage-readiness':

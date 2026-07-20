@@ -7,9 +7,9 @@ DECLARE
     function_names text[];
     function_record record;
 BEGIN
-    IF (SELECT count(*) FROM sentinelflow.schema_migrations) <> 33 OR
+    IF (SELECT count(*) FROM sentinelflow.schema_migrations) <> 34 OR
        (SELECT min(version) FROM sentinelflow.schema_migrations) <> 1 OR
-       (SELECT max(version) FROM sentinelflow.schema_migrations) <> 33 OR
+       (SELECT max(version) FROM sentinelflow.schema_migrations) <> 34 OR
        NOT EXISTS (
            SELECT 1 FROM sentinelflow.schema_migrations
            WHERE version = 25 AND name = 'dispatch_started_recovery'
@@ -37,8 +37,11 @@ BEGIN
        ) OR NOT EXISTS (
            SELECT 1 FROM sentinelflow.schema_migrations
            WHERE version = 33 AND name = 'analysis_stale_version_resolution'
+       ) OR NOT EXISTS (
+           SELECT 1 FROM sentinelflow.schema_migrations
+           WHERE version = 34 AND name = 'execution_result_v2_expiry_bounds'
        ) THEN
-        RAISE EXCEPTION 'migration ledger is not the exact version-33 chain';
+        RAISE EXCEPTION 'migration ledger is not the exact version-34 chain';
     END IF;
 
     IF to_regprocedure(
@@ -188,8 +191,12 @@ BEGIN
         'record_execution_capability_pre_000026',
         'record_execution_capability_pre_000027',
         'record_execution_result',
+        'record_execution_result_insert_pre_000034',
+        'record_execution_result_lifecycle_pre_000034',
         'record_execution_result_pre_000026',
-        'record_execution_result_pre_000027'
+        'record_execution_result_pre_000027',
+        'record_execution_result_v2',
+        'record_execution_result_v2_000034'
     ]::text[] THEN
         RAISE EXCEPTION 'dispatch wrapper function set is not canonical: %', function_names;
     END IF;
@@ -226,10 +233,12 @@ BEGIN
            has_function_privilege('sentinelflow_lifecycle', function_record.oid, 'EXECUTE') OR
            has_function_privilege('sentinelflow_metrics', function_record.oid, 'EXECUTE') OR
            (
-               function_record.proname LIKE '%_pre_%' AND
+               (function_record.proname LIKE '%_pre_%' OR
+                function_record.proname = 'record_execution_result_v2_000034') AND
                has_function_privilege('sentinelflow_dispatcher', function_record.oid, 'EXECUTE')
            ) OR (
                function_record.proname NOT LIKE '%_pre_%' AND
+               function_record.proname <> 'record_execution_result_v2_000034' AND
                NOT has_function_privilege('sentinelflow_dispatcher', function_record.oid, 'EXECUTE')
            ) THEN
             RAISE EXCEPTION 'dispatch wrapper owner/security/ACL mismatch: %',
@@ -270,8 +279,20 @@ BEGIN
             'sentinelflow.record_execution_result(uuid,uuid,uuid,uuid,sentinelflow.sha256_digest,text,uuid,sentinelflow.sha256_digest,sentinelflow.canonical_ipv4,text,text,text,bigint,integer,sentinelflow.sha256_digest,timestamptz,timestamptz,bigint,text,bytea,sentinelflow.sha256_digest,bytea)'::regprocedure
         )
     ) = 0 OR position(
-        'record_execution_result_pre_000026' IN pg_get_functiondef(
+        'record_execution_result_lifecycle_pre_000034' IN pg_get_functiondef(
             'sentinelflow.record_execution_result_pre_000027(uuid,uuid,uuid,uuid,sentinelflow.sha256_digest,text,uuid,sentinelflow.sha256_digest,sentinelflow.canonical_ipv4,text,text,text,bigint,integer,sentinelflow.sha256_digest,timestamptz,timestamptz,bigint,text,bytea,sentinelflow.sha256_digest,bytea)'::regprocedure
+        )
+    ) = 0 OR position(
+        'record_execution_result_pre_000026' IN pg_get_functiondef(
+            'sentinelflow.record_execution_result_lifecycle_pre_000034(uuid,uuid,uuid,uuid,sentinelflow.sha256_digest,text,uuid,sentinelflow.sha256_digest,sentinelflow.canonical_ipv4,text,text,text,bigint,integer,sentinelflow.sha256_digest,timestamptz,timestamptz,bigint,text,bytea,sentinelflow.sha256_digest,bytea)'::regprocedure
+        )
+    ) = 0 OR position(
+        'record_execution_result_insert_pre_000034' IN pg_get_functiondef(
+            'sentinelflow.record_execution_result_pre_000026(uuid,uuid,uuid,uuid,sentinelflow.sha256_digest,text,uuid,sentinelflow.sha256_digest,sentinelflow.canonical_ipv4,text,text,text,bigint,integer,sentinelflow.sha256_digest,timestamptz,timestamptz,bigint,text,bytea,sentinelflow.sha256_digest,bytea)'::regprocedure
+        )
+    ) = 0 OR position(
+        'record_execution_result_v2_000034' IN pg_get_functiondef(
+            'sentinelflow.record_execution_result_v2(uuid,uuid,uuid,uuid,sentinelflow.sha256_digest,text,uuid,sentinelflow.sha256_digest,sentinelflow.canonical_ipv4,text,text,text,bigint,integer,sentinelflow.sha256_digest,timestamptz,timestamptz,bigint,text,bytea,sentinelflow.sha256_digest,bytea,timestamptz,timestamptz)'::regprocedure
         )
     ) = 0 THEN
         RAISE EXCEPTION 'dispatch wrapper dependency chain is not canonical';
