@@ -2,7 +2,7 @@
 
 [한국어](./RESEARCH.ko.md)
 
-SentinelFlow is an MIT-licensed defensive security gateway owned by **Veloz (벨로즈)** and maintained in the [devwooops/sentinelflow repository](https://github.com/devwooops/sentinelflow). The company website is [sec.veloz.kr](https://sec.veloz.kr). Security reports should follow [SECURITY.md](../SECURITY.md) or contact [security@veloz.kr](mailto:security@veloz.kr).
+SentinelFlow is an MIT-licensed defensive security gateway owned by **Veloz (벨로즈)** and maintained in the [devwooops/sentinelflow repository](https://github.com/veloz-security/sentinelflow). The company website is [sec.veloz.kr](https://sec.veloz.kr). Security reports should follow [SECURITY.md](../SECURITY.md) or contact [security@veloz.kr](mailto:security@veloz.kr).
 
 This document presents inspectable engineering work for researchers, evaluators, and potential contributors. It does not claim a certification, customer deployment, independent audit, or acceptance into any vendor program. The experimental `v0.1.0-rc.1` publication makes the work easier to reproduce; it does not complete the implementation-qualified v0.1 release gates.
 

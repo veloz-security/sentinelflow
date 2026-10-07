@@ -18,7 +18,7 @@
 
 SentinelFlow는 벨로즈(Veloz) 소유이며 공식 사이트는 [sec.veloz.kr](https://sec.veloz.kr)이다. 소유자는 [security@veloz.kr](mailto:security@veloz.kr)을 보안 문의 주소로 제공했다. 소유자가 공개 구조 정리와 릴리스 게시를 요청했다. `v0.1.0-rc.1`은 구현 검증 완료 v0.1 릴리스와 별개인 실험적 연구 배포다. Production, 고객 실적, 인증 또는 CVP 승인 주장은 하지 않는다. Runtime과 enforcement contract는 변경하지 않는다.
 
-Implementation checkpoint `b125adec66864c87f5d37f15049514381dd9e4f3`에는 migration 34와 v2 expiry repair가 이미 commit되어 있으며 [CI run 29709922172](https://github.com/devwooops/sentinelflow/actions/runs/29709922172)이 해당 commit의 10개 shard를 모두 통과했다. 아래의 이전 “current-tree” 결과는 2026년 7월 snapshot이며 새로운 10월 rerun이 아니다. Release record는 자신의 exact commit과 verification을 명시해야 한다. 기존 P0 prerequisite와 full v0.1 acceptance gate는 독립적으로 충족될 때까지 open으로 유지한다. [Release guide](./RELEASE.ko.md), [research evidence](./RESEARCH.ko.md), ADR-015 및 M9-010을 참조한다.
+Implementation checkpoint `b125adec66864c87f5d37f15049514381dd9e4f3`에는 migration 34와 v2 expiry repair가 이미 commit되어 있으며 [CI run 29709922172](https://github.com/veloz-security/sentinelflow/actions/runs/29709922172)이 해당 commit의 10개 shard를 모두 통과했다. 아래의 이전 “current-tree” 결과는 2026년 7월 snapshot이며 새로운 10월 rerun이 아니다. Release record는 자신의 exact commit과 verification을 명시해야 한다. 기존 P0 prerequisite와 full v0.1 acceptance gate는 독립적으로 충족될 때까지 open으로 유지한다. [Release guide](./RELEASE.ko.md), [research evidence](./RESEARCH.ko.md), ADR-015 및 M9-010을 참조한다.
 
 ## 1. 목적과 상태 해석
 

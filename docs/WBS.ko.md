@@ -23,7 +23,7 @@
 
 통합 순서: prerelease 경계와 ownership 동결, 문서와 packaging 검토, local check 재실행, 통합 candidate commit, hosted CI 검증, immutable commit provenance와 known limitation을 포함한 prerelease 게시. ROOT만 stage, commit, push, tag, publish, shared lock 수정 및 canonical task 완료 처리를 할 수 있다. Leaf는 release readiness를 인증하지 않는다. Frontend 변경은 배정하지 않는다. 아래 7월 checkpoint는 날짜가 있는 과거 evidence로 보존하며 현재 roster가 아니다.
 
-Dependency repair 확장: 새로운 검사에서 Go와 npm advisory를 발견했다. ROOT가 go.mod/go.sum, backend image pin 및 web/package.json/package-lock.json을 소유하며 ADR-016이 좁은 patch 범위를 동결한다. M9-011 backend check는 Go `1.25.13`으로 local 통과했고 M9-012는 Leaf 1의 공개 문서 handoff 후 별도의 frontend unit/browser/visual 검증을 받는다. Leaf 2는 packaging과 license notice만 소유하고 Leaf 3은 packaging 및 release 경계를 독립 검토했다. Remote CI에는 결정적 packaging 전용 shard를 추가한다. Frontend Linux visual gate와 local Docker 변경은 겹치지 않는다. 소유자가 선택한 `veloz-security`로의 organization transfer는 GitHub 조직 생성을 기다리며 SentinelFlow와 기존 pktide repository 모두 이전 요청 범위에 포함된다.
+Dependency repair 확장: 새로운 검사에서 Go와 npm advisory를 발견했다. ROOT가 go.mod/go.sum, backend image pin 및 web/package.json/package-lock.json을 소유하며 ADR-016이 좁은 patch 범위를 동결한다. M9-011 backend check는 Go `1.25.13`으로 local 통과했고 M9-012는 Leaf 1의 공개 문서 handoff 후 별도의 frontend unit/browser/visual 검증을 받는다. Leaf 2는 packaging과 license notice만 소유하고 Leaf 3은 packaging 및 release 경계를 독립 검토했다. Remote CI에는 결정적 packaging 전용 shard를 추가한다. Frontend Linux visual gate와 local Docker 변경은 겹치지 않는다. 소유자가 `veloz-security`를 생성했으며 SentinelFlow와 기존 pktide repository를 이전하고 repository ID, branch/tag SHA, release/PR ID, 공개 상태와 administrator 권한 보존을 검증했다.
 
 ## 1. 재기준화 결정
 
