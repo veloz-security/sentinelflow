@@ -8,9 +8,9 @@ SentinelFlow is an explainable AI security gateway that observes web traffic thr
 
 **Owner:** [Veloz (벨로즈)](https://sec.veloz.kr) · **Organization:** [veloz-security](https://github.com/veloz-security) · **Repository maintainer:** [@devwooops](https://github.com/devwooops) · **Security contact:** [security@veloz.kr](mailto:security@veloz.kr)
 
-[Research and evidence](./docs/RESEARCH.md) · [Release and installation guide](./docs/RELEASE.md) · [Releases](https://github.com/veloz-security/sentinelflow/releases) · [Security policy](./SECURITY.md) · [Contributing](./CONTRIBUTING.md)
+[Company research note](https://sec.veloz.kr/research/sentinelflow/) · [Research and evidence](./docs/RESEARCH.md) · [Release and installation guide](./docs/RELEASE.md) · [Releases](https://github.com/veloz-security/sentinelflow/releases) · [Security policy](./SECURITY.md) · [Contributing](./CONTRIBUTING.md)
 
-SentinelFlow is owned by Veloz and published as MIT-licensed defensive security research. Its current purpose is reproducible evaluation in authorized, isolated environments. Public source, tests, and release artifacts document the work; they do not establish production readiness, customer deployments, certification, or approval by a third-party access program.
+SentinelFlow is owned by Veloz, developed and maintained by Veloz Security Research, and published as MIT-licensed defensive security research. Its current purpose is reproducible evaluation in authorized, isolated environments. Public source, tests, and release artifacts document the work; they do not establish production readiness, customer deployments, certification, or approval by a third-party access program.
 
 ---
 
