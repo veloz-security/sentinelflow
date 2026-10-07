@@ -14,6 +14,12 @@
 >
 > 출처: [README](../README.md)
 
+## 공개 연구 배포 checkpoint (2026-10-07)
+
+SentinelFlow는 벨로즈(Veloz) 소유이며 공식 사이트는 [sec.veloz.kr](https://sec.veloz.kr)이다. 소유자는 [security@veloz.kr](mailto:security@veloz.kr)을 보안 문의 주소로 제공했다. 소유자가 공개 구조 정리와 릴리스 게시를 요청했다. `v0.1.0-rc.1`은 구현 검증 완료 v0.1 릴리스와 별개인 실험적 연구 배포다. Production, 고객 실적, 인증 또는 CVP 승인 주장은 하지 않는다. Runtime과 enforcement contract는 변경하지 않는다.
+
+Implementation checkpoint `b125adec66864c87f5d37f15049514381dd9e4f3`에는 migration 34와 v2 expiry repair가 이미 commit되어 있으며 [CI run 29709922172](https://github.com/devwooops/sentinelflow/actions/runs/29709922172)이 해당 commit의 10개 shard를 모두 통과했다. 아래의 이전 “current-tree” 결과는 2026년 7월 snapshot이며 새로운 10월 rerun이 아니다. Release record는 자신의 exact commit과 verification을 명시해야 한다. 기존 P0 prerequisite와 full v0.1 acceptance gate는 독립적으로 충족될 때까지 open으로 유지한다. [Release guide](./RELEASE.ko.md), [research evidence](./RESEARCH.ko.md), ADR-015 및 M9-010을 참조한다.
+
 ## 1. 목적과 상태 해석
 
 이 문서는 `README.md`의 SentinelFlow 설계 원칙·trust boundary·architecture와 여기에 기록한 명시적 project-owner decision을 하나의 ADR 모음으로 정리한다. 프로젝트에는 이제 통합 prototype이 있지만 일부 release command와 environment-specific evidence는 아직 검증되지 않았다. 따라서 이 문서의 `채택됨`은 product 또는 safety decision이 implementation baseline으로 확정되었다는 뜻이며 그 자체로 release 또는 운영 검증 완료를 뜻하지 않는다.
@@ -43,6 +49,8 @@
 | [ADR-012](#adr-012-gateway-edge-delivery-once-only-enforcement-protocol을-확정한다) | Gateway edge, delivery integrity, exact AI/HIL contract 및 once-only enforcement protocol | Accepted(채택됨) — 구현 증거 존재, integrated release 검증 미완료 | FR-008~FR-016, FR-020~FR-026, NFR-001~NFR-003, NFR-006~NFR-009, NFR-012~NFR-014 |
 | [ADR-013](#adr-013-renewable-worker-privilege-없이-demo-history-authority를-stage하고-expire한다) | Staged non-renewable signed demo-history authority | Accepted(채택됨) — targeted implementation evidence 존재, release 검증 미완료 | FR-012, FR-020, NFR-001~NFR-002, NFR-006, NFR-008~NFR-011 |
 | [ADR-014](#adr-014-signed-read-back-interval에-expiry-lifecycle을-바인딩한다) | Signed read-back interval 및 bounded expiry lifecycle | Accepted(채택됨) — 구현 및 release 검증 필요 | FR-014~FR-016, NFR-001~NFR-003, NFR-006~NFR-009 |
+| [ADR-015](#adr-015-실험적-연구-배포를-full-v01-검증과-분리해-게시) | 실험적 연구 배포 | Accepted — publication verification required | FR-021, NFR-005, NFR-010, NFR-011 |
+| [ADR-016](#adr-016-공개-배포-전-취약한-의존성-갱신) | 공개 배포 전 취약한 의존성 갱신 | Accepted — regression verification required | FR-021~FR-026, NFR-002, NFR-005, NFR-010, NFR-011 |
 
 FR/NFR 식별자는 [`PRD.ko.md`](PRD.ko.md)의 기능·비기능 요구사항을 기준으로 한다. 범위 표기 `FR-005~FR-007`은 두 끝을 포함한 연속 ID 전체를 뜻한다.
 
@@ -644,6 +652,42 @@ Corrective design은 기존 property를 보존해야 한다. Executor만 nftable
 - Lifecycle storage와 schedule은 explicit bounded expiry contract와 result-schema migration을 얻는다.
 - Native failure는 unmet release condition의 evidence로 남으며 어떤 문서 claim도 이를 passing expiry test로 바꾸지 않는다.
 - Correction은 executor/result와 database compatibility 작업을 늘리지만 expiry, recovery, alert decision을 locally guessed timestamp가 아닌 evidence에 바인딩한다.
+
+---
+
+## ADR-015: 실험적 연구 배포를 full v0.1 검증과 분리해 게시
+
+### Status
+
+**Accepted — publication verification required.** 소유자는 2026-10-07 공개 구조 정리와 릴리스 게시를 요청하고 Veloz 소유 관계, 공식 사이트 및 보안 문의 주소를 확인했다.
+
+### Decision
+
+`v0.1.0-rc.1`을 명시적인 실험적 GitHub prerelease로 게시하여 허가된 연구 평가에 제공한다. Module path, runtime boundary, migration 순서, MIT 저작자 고지 및 모든 full v0.1 acceptance gate를 유지한다. 공개 문서는 Veloz 소유 관계를 명시하고 구현된 동작, 과거 evidence, 새로운 release verification 및 미해결 작업을 구분한다.
+
+Commit된 source와 재현 가능한 Linux build artifact만 checksum 및 exact commit/toolchain provenance와 함께 배포한다. Release는 실제 실행한 check와 실패하거나 사용할 수 없는 check를 명시해야 한다. 게시 전에 새로운 CI와 packaging check가 필요하다. Artifact checksum은 byte integrity를 증명하며 게시자 신원이나 보안 인증을 증명하지 않는다. 이 작업은 M9-010이며 M9-008을 완료하거나 FR-021을 약화하지 않고 NFR-005, NFR-010, NFR-011을 지원한다.
+
+### Consequences
+
+Prerelease는 방어 보안 작업의 공개 기록이며 CVP 승인, production readiness 또는 고객 사용 실적을 보장하지 않는다. Full implementation qualification은 계속 PRD section 12와 기존 Tasklist dependency를 따른다. 향후 stable version 승격에는 해당 gate와 별도의 release decision이 필요하다.
+
+---
+
+## ADR-016: 공개 배포 전 취약한 의존성 갱신
+
+### Status
+
+**Accepted — regression verification required.** 2026-10-07 새로운 release check에서 reachable Go vulnerability report 7건과 high-severity npm dependency finding 8건을 발견했다. 기존 binary 게시로는 정해진 security gate를 통과할 수 없다.
+
+### Decision
+
+ADR-007의 Go patch pin만 대체한다. Go `1.25.13`과 `golang.org/x/text` `v0.39.0`을 사용하고 이에 맞는 digest-pinned backend build image 및 resolved module checksum을 사용한다. 취약한 frontend dependency는 기존 major version 내에서 갱신하며 exact direct pin과 commit된 npm lockfile을 유지한다. ROOT가 모든 dependency lock을 소유하고 frontend 검증은 backend patch 검증과 별도 task로 유지한다. HTTP protocol limit, authorization, evidence, signing, HIL 또는 enforcement contract 변경은 허용하지 않는다.
+
+배포 전에 patched commit에서 backend unit/framing/recovery test, frontend unit/build/browser check, 최신 dependency advisory, contract vector 및 결정적 packaging을 재실행한다. 7월 frozen image-scanner database의 날짜를 명시적으로 유지하며 새로운 dependency scan이 새로운 image database를 뜻하지 않는다. 이 release prerequisite를 M9-011(backend) 및 M9-012(frontend)로 기록하고 게시를 위해 실패 advisory를 억제하지 않는다.
+
+### Consequences
+
+과거 7월 test evidence는 기록된 toolchain에만 유효하다. 새로운 artifact는 새로운 검증이 필요하다. 이 patch maintenance는 FR-021~FR-026, NFR-002, NFR-005, NFR-010, NFR-011 및 pinned-parser negative-test 의무를 보존한다.
 
 ---
 

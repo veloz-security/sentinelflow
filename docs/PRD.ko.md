@@ -14,6 +14,14 @@
 >
 > — [`README.md`](../README.md)
 
+## 공개 연구 배포 checkpoint (2026-10-07)
+
+SentinelFlow는 벨로즈(Veloz) 소유이며 공식 사이트는 [sec.veloz.kr](https://sec.veloz.kr)이다. 소유자는 [security@veloz.kr](mailto:security@veloz.kr)을 보안 문의 주소로 제공했다. 소유자가 공개 구조 정리와 릴리스 게시를 요청했다. `v0.1.0-rc.1`은 구현 검증 완료 v0.1 릴리스와 별개인 실험적 연구 배포다. Production, 고객 실적, 인증 또는 CVP 승인 주장은 하지 않는다. Runtime과 enforcement contract는 변경하지 않는다.
+
+Implementation checkpoint `b125adec66864c87f5d37f15049514381dd9e4f3`에는 migration 34와 v2 expiry repair가 이미 commit되어 있으며 [CI run 29709922172](https://github.com/devwooops/sentinelflow/actions/runs/29709922172)이 해당 commit의 10개 shard를 모두 통과했다. 아래의 이전 “current-tree” 결과는 2026년 7월 snapshot이며 새로운 10월 rerun이 아니다. Release record는 자신의 exact commit과 verification을 명시해야 한다. 기존 P0 prerequisite와 full v0.1 acceptance gate는 독립적으로 충족될 때까지 open으로 유지한다. [Release guide](./RELEASE.ko.md), [research evidence](./RESEARCH.ko.md), ADR-015 및 M9-010을 참조한다.
+
+공개 배포용 patch maintenance는 ADR-016을 따른다. Go `1.25.13`, `golang.org/x/text` `v0.39.0` 및 동일 major 내 frontend dependency 수정은 새로운 backend(M9-011) 및 독립 frontend(M9-012) 검증이 필요하다. 기존 safety contract와 full release gate는 유지한다.
+
 ## 1. 문서 목적과 해석 규칙
 
 이 문서는 `README.md`에 기술된 SentinelFlow의 제품 의도를 구현·검증 가능한 요구사항으로 정리한다. v0.1 목표는 구현 완료된 단일 노드 reference release다. 실제 코드, 영속화, REST/SSE, 브라우저 UI, OpenAI adapter, 격리 nftables 집행, 복구, 성능 및 보안 증거가 함께 동작해야 한다. 이는 production readiness, 고가용성, multi-tenancy 또는 호스트 방화벽 배포를 주장하는 것이 아니다. 현재 구현은 존재하지만 Section 12의 남은 release gate 때문에 complete release를 주장할 수 없다. 이 문서의 요구사항은 다음 기준으로 해석한다.
@@ -327,7 +335,7 @@ Fixed adapter contract는 공식 [`gpt-5.6-sol` model page](https://developers.o
 | 회귀 검증 | 최종 문서의 backend, frontend, integration test 명령이 성공한다. |
 | 문서 정확성 | 설치·데모 명령과 스크린샷이 실제 구현과 일치하며 placeholder 표시가 제거 또는 갱신된다. |
 
-현재 evidence는 final root backend/data/contract/security/recovery/frontend gate, RUN25 fast Compose E2E, 이전 clean-clone/hosted-CI evidence 및 synthetic `path_scan`/evidence reference 1개에 대해 `openai_responses`/`gpt-5.6-sol`이 `status=ok`을 반환하고 control-plane mutation이 없었던 1회 billable live OpenAI probe를 포함한다. Current uncommitted implementation은 migration 34와 `execution-result-v2`를 추가했다. Executor-signed read-back lower/upper expiry bound, result/bound reuse 금지, TTL refresh 금지, bounded diagnostic projection을 구현했다. Current-tree Linux native v6 E2E는 exit `0`으로 실제 kernel TTL expiry, signed absent inspection, audit/recovery/forwarding convergence 및 cleanup 뒤 변경되지 않은 semantic host nftables를 증명했다. Current-tree five-minute 4 GB Linux performance gate도 `GATE_VERDICT=pass`, p95 `533us`, outage overhead `436us`로 exit `0`을 기록했다. Fast browser QA는 sanitized active/revoked screenshot과 함께 exit `0`을 기록했지만 non-release UI evidence다. 이 evidence는 여전히 release table을 충족하지 않는다. Current-SHA committed clean-checkout/CI, final release screenshot/submission evidence 및 release decision은 pending이다. 상세 경계는 [구현 준비도](./IMPLEMENTATION_READINESS.ko.md)에 기록한다.
+현재 evidence는 final root backend/data/contract/security/recovery/frontend gate, RUN25 fast Compose E2E, 이전 clean-clone/hosted-CI evidence 및 synthetic `path_scan`/evidence reference 1개에 대해 `openai_responses`/`gpt-5.6-sol`이 `status=ok`을 반환하고 control-plane mutation이 없었던 1회 billable live OpenAI probe를 포함한다. Previously recorded implementation은 migration 34와 `execution-result-v2`를 추가했다. Executor-signed read-back lower/upper expiry bound, result/bound reuse 금지, TTL refresh 금지, bounded diagnostic projection을 구현했다. Current-tree Linux native v6 E2E는 exit `0`으로 실제 kernel TTL expiry, signed absent inspection, audit/recovery/forwarding convergence 및 cleanup 뒤 변경되지 않은 semantic host nftables를 증명했다. Current-tree five-minute 4 GB Linux performance gate도 `GATE_VERDICT=pass`, p95 `533us`, outage overhead `436us`로 exit `0`을 기록했다. Fast browser QA는 sanitized active/revoked screenshot과 함께 exit `0`을 기록했지만 non-release UI evidence다. 이 evidence는 여전히 release table을 충족하지 않는다. Current-SHA committed clean-checkout/CI, final release screenshot/submission evidence 및 release decision은 pending이다. 상세 경계는 [구현 준비도](./IMPLEMENTATION_READINESS.ko.md)에 기록한다.
 
 ### 12.2 제품 지표 — 설계 제안
 

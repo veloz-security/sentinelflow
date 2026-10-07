@@ -1,11 +1,16 @@
 # SentinelFlow
 
-Explainable AI security gateway with evidence-bound, administrator-approved response actions.
+Open-source defensive security gateway for evidence-driven detection, incident analysis, and administrator-approved network response.
 
 SentinelFlow is an explainable AI security gateway that observes web traffic through an inline reverse proxy, correlates structured evidence, and applies temporary response actions only after strict validation and administrator HIL approval.
 
-> Status: **Still implementing.** The Gateway-first v0.1 implementation, contracts, database, control-plane services, administrator UI, isolated executor, and test harnesses exist and pass the verified local gates listed below.
-> Current implementation evidence includes RUN25 fast Compose E2E (log SHA-256 `4702571db361b411449dadc789995348f0254f0a07a1a2aefda36a79b070b877`), [hosted CI run 29696139988](https://github.com/devwooops/sentinelflow/actions/runs/29696139988) for implementation checkpoint `5ef870155bc59e6ac3c30279a7cd8be8d0249887`, and current uncommitted migration `000034_execution_result_v2_expiry_bounds` with executor-signed `execution-result-v2` bounds and no-reuse/no-TTL-refresh checks. A current-tree Linux native v6 E2E exited `0`: it observed real kernel TTL expiry, signed absent inspection, audit/recovery/forwarding convergence, and an unchanged semantic host nftables structure after cleanup. A current-tree five-minute 4 GB Linux performance gate also exited `0` with `GATE_VERDICT=pass`, p95 Gateway overhead `533us`, and outage overhead `436us`. An explicit one-attempt live OpenAI probe returned `status=ok` from `openai_responses` using `gpt-5.6-sol`, synthetic `path_scan`, and one evidence reference; it did not persist data or reach HIL, dispatcher, or executor. Fast Compose browser QA exited `0` and produced sanitized active/revoked captures, but remains non-release UI evidence. Release qualification is still open: a current-SHA committed clean-checkout/CI run, final release screenshots/submission evidence, and the final release decision.
+> Status: **Experimental / Early Access.** This experimental research distribution is intended for evaluation; full v0.1 qualification remains open.
+
+**Owner:** [Veloz (벨로즈)](https://sec.veloz.kr) · **Repository maintainer:** [@devwooops](https://github.com/devwooops) · **Security contact:** [security@veloz.kr](mailto:security@veloz.kr)
+
+[Research and evidence](./docs/RESEARCH.md) · [Release and installation guide](./docs/RELEASE.md) · [Releases](https://github.com/devwooops/sentinelflow/releases) · [Security policy](./SECURITY.md) · [Contributing](./CONTRIBUTING.md)
+
+SentinelFlow is owned by Veloz and published as MIT-licensed defensive security research. Its current purpose is reproducible evaluation in authorized, isolated environments. Public source, tests, and release artifacts document the work; they do not establish production readiness, customer deployments, certification, or approval by a third-party access program.
 
 ---
 
@@ -338,7 +343,7 @@ The worker schedules separately signed `nft-inspect-v1` operations through the r
 
 ### Backend and data plane
 
-- Go `1.25.12`
+- Go `1.25.13`
 - `net/http` and `httputil.ReverseProxy`
 - `github.com/go-chi/chi/v5` `v5.3.1`
 - `github.com/jackc/pgx/v5` `v5.9.2`, SQL query sources, and a sqlc configuration
@@ -403,7 +408,9 @@ sentinelflow/
 ├── deployments/
 ├── samples/
 ├── scripts/
-├── docs/
+├── docs/                  # research, release guide, history, bilingual design contracts
+├── SECURITY.md            # private reporting and security boundaries
+├── CONTRIBUTING.md        # reproducible contribution workflow
 └── AGENTS.md
 ```
 
@@ -441,7 +448,7 @@ See [Implementation Readiness](./docs/IMPLEMENTATION_READINESS.md) for current l
 
 Development and release requirements:
 
-- Go `1.25.12`, as pinned by `go.mod`
+- Go `1.25.13`, as pinned by `go.mod`
 - Node.js and npm versions compatible with the checked frontend lockfile
 - Docker 24+ and Docker Compose v2
 - PostgreSQL-compatible local container
@@ -458,7 +465,7 @@ macOS development can run the Gateway, API, worker, dispatcher, database, fronte
 From a fresh clone, generate the local secret/demo bundle and start the deterministic stub-analysis profile:
 
 ```bash
-git clone https://github.com/devwooops/sentinelflow.git
+git clone --branch v0.1.0-rc.1 --depth 1 https://github.com/devwooops/sentinelflow.git
 cd sentinelflow
 ./scripts/prepare-demo.sh
 COMPOSE_DISABLE_ENV_FILE=1 OPENAI_API_KEY= docker compose \
@@ -507,17 +514,17 @@ SENTINELFLOW_GATEWAY_PERF_MODE=smoke make check-gateway-performance
 make check-docs
 ```
 
-Verified on the current development workspace:
+Historical implementation evidence recorded in July 2026 (not a fresh run on every release):
 
 - the backend gate formats, vets, statically checks, tests, and builds 88 `cmd`/`internal` packages;
-- the published baseline's final root PostgreSQL 17.10 verifier passed 33 migrations and 72 tables, including fresh/restart-noop, `33→24→33`, ACL, sqlc, repeated-content-digest identity, the API-only validation-attempt projection, and queued stale-analysis supersession. The current working tree adds migration 34, `execution_result_v2_expiry_bounds`: it persists only executor-signed read-back bounds, forbids v1 from creating a new expiry schedule, preserves historical result bytes, rejects result/bound reuse, and retains the original active bound so later inspection cannot refresh TTL. Focused recovery-bundle verification checks signed v2 brackets against persisted bounds, and backup preflight validates v1/v2 representation; focused unit, contract, and database-chain tests pass; no native-release result is implied;
+- the published baseline's final root PostgreSQL 17.10 verifier passed 33 migrations and 72 tables, including fresh/restart-noop, `33→24→33`, ACL, sqlc, repeated-content-digest identity, the API-only validation-attempt projection, and queued stale-analysis supersession. Implementation checkpoint `b125ade` includes migration 34, `execution_result_v2_expiry_bounds`: it persists only executor-signed read-back bounds, forbids v1 from creating a new expiry schedule, preserves historical result bytes, rejects result/bound reuse, and retains the original active bound so later inspection cannot refresh TTL. Focused recovery-bundle verification checks signed v2 brackets against persisted bounds, and backup preflight validates v1/v2 representation; focused unit, contract, and database-chain tests pass; no native-release result is implied;
 - final root frontend verification reports 39 Vitest files/363 tests and a production-CSP Chromium gate passing 1/1. The CSP-safe error decoder, exact deployment-header parser, and all-production-JavaScript dynamic-code-generation scan are implemented; release-level browser certification remains pending;
 - the demo E2E helper suite passes 39/39 tests and its shell-contract suite passes 6/6 tests (46 combined tests). The shell contract requires the evidence-chain SQL to parse and return zero rows on the migrated PostgreSQL before entering the 305-second coverage wait. The helper now keeps generated and canonical artifact digests distinct, expects queue audit only for add, and restarts only long-running services during outage recovery;
 - the third full `make check-supply-chain` run passes static 18/18, reproducible source SBOM, reproducible backend/PostgreSQL/Web images, fail-fast runtime probes, frozen Trivy database scans and SPDX output for all four shipped images with zero CRITICAL findings, PostgreSQL fresh/migrate/restart/wrong-owner-fail-closed lifecycle checks, evidence binding, and scoped cleanup; the legacy Sentinel container and demo images were preserved;
 - `./scripts/check-clean-input.sh` materialized 905 tracked or unignored candidate source files into an external temporary Git-initialized snapshot, recorded manifest SHA-256 `2c395c3c5e3d28e908513e3304f5896ac7ae1eebe9a88dc80c543fe8baa73150`, and passed `make check`; this is source-only pre-commit evidence, not a committed checkout, CI, Linux, or release qualification;
 - disabled and missing-key `cmd/openaismoke` paths fail closed without a network request.
 
-Verified current-tree runtime evidence:
+Historical July 2026 runtime evidence retained in the repository:
 
 - a Linux native v6 `./scripts/check-demo-e2e.sh` exited `0` and proved real kernel TTL expiry, signed absent inspection, audit/recovery/forwarding convergence, and unchanged semantic host nftables after exact Compose cleanup;
 - a five-minute 4 GB Linux `make check-gateway-performance` release gate exited `0` with `GATE_VERDICT=pass`, p95 Gateway overhead `533us`, and outage overhead `436us`;
@@ -525,7 +532,7 @@ Verified current-tree runtime evidence:
 
 Still pending or not qualified:
 
-- current-SHA committed clean-checkout and hosted CI evidence;
+- full implementation-qualified release rehearsal on the final release commit;
 - final release screenshots/submission evidence and the release decision.
 
 Fast browser QA and prior CI/smoke evidence do not substitute for those release qualifications.
@@ -592,7 +599,7 @@ Expected v0.1 limitations include:
 - signed demo-history activation lasts one hour and has no in-place renewal; expiry requires a complete disposable profile/volume reset and a newly sealed run;
 - the demo importer and activator roles are PostgreSQL cluster-global, so the reference lifecycle assumes one isolated SentinelFlow demo profile per PostgreSQL cluster and rejects unsafe cross-database role state.
 
-The current release candidate is additionally limited by the absence of current-SHA committed clean-checkout/CI evidence, final release screenshots/submission evidence, and an approved release decision. The live OpenAI probe has now passed, while native Linux lifecycle/host-invariance and the documented 4 GB performance gate have current-tree runtime evidence; none of these alone authorize a release.
+The experimental research prerelease does not complete the full v0.1 qualification: final release rehearsal, frontend certification/captures, prerequisite completion, and the implementation-qualified release decision remain open. The live OpenAI probe has now passed, while native Linux lifecycle/host-invariance and the documented 4 GB performance gate have current-tree runtime evidence; none of these alone authorize a release.
 
 SentinelFlow is an implementation-oriented reference security gateway, not a production replacement for a mature WAF, SIEM, IDS, IPS, reverse proxy, or professional security review.
 

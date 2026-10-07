@@ -1,0 +1,38 @@
+name: Experimental release assets
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Experimental prerelease version (for example v0.1.0-rc.1)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Verify deterministic packaging and failure behavior
+        run: ./scripts/check-release.sh
+      - name: Build immutable candidate assets
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: ./scripts/build-release.sh "$RELEASE_VERSION" "$RUNNER_TEMP/sentinelflow-release-assets"
+      # Artifact build only: no token permission, tag, or automatic release publication.
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: sentinelflow-experimental-release-assets
+          path: ${{ runner.temp }}/sentinelflow-release-assets/*
+          if-no-files-found: error
+          retention-days: 14

@@ -10,6 +10,21 @@
 >
 > Execution state: release stabilization in progress; Tasklist completion remains evidence- and prerequisite-bound
 
+## 0. Public research prerelease work (2026-10-07)
+
+The owner requested public project restructuring and release publication. This work prepares `v0.1.0-rc.1` as an experimental research prerelease; it does not complete the implementation-qualified v0.1 gate. Scope maps to M9-010, FR-021, NFR-005, NFR-010, NFR-011, ADR-007, and RELEASE-SMOKE. Runtime and enforcement contracts remain unchanged.
+
+| Slot | Package | Exclusive ownership | Gate |
+| --- | --- | --- | --- |
+| ROOT | Integration and publication | README.md, AGENTS.md, canonical PRD/ADR/TDD/TASKLIST/WBS/readiness pairs, release notes | Review all changes, synchronize documents, publish only verified assets |
+| Leaf 1 | Public research documentation | docs/RESEARCH.md, docs/RESEARCH.ko.md, docs/RELEASE.md, docs/RELEASE.ko.md, CONTRIBUTING.md | Source-backed claims, bilingual parity, no invented company affiliation |
+| Leaf 2 | Reproducible release packaging | scripts/build-release.sh, scripts/check-release.sh, .github/workflows/release.yml | Explicit tracked-file source archive, Linux builds, checksums, deterministic rebuild and failure checks |
+| Leaf 3 | Independent readiness review | Read-only repository and external temporary evidence | Backend verification, release risks and documentation review; no Docker mutation |
+
+Integration order: freeze the prerelease boundary and ownership, review documentation and packaging, rerun local checks, commit the integrated candidate, verify hosted CI, publish a prerelease with immutable commit provenance and known limitations. Only ROOT may stage, commit, push, tag, publish, edit shared locks, or mark canonical tasks complete. Leaves do not certify release readiness. No frontend change is assigned. Historical July checkpoints below are retained as dated evidence, not the current roster.
+
+Dependency repair extension: fresh checks found Go and npm advisories. ROOT owns go.mod/go.sum, the backend image pin, and web/package.json/package-lock.json; ADR-016 freezes the narrow patch scope. M9-011 backend checks passed locally with Go `1.25.13`; M9-012 receives separate frontend unit/browser/visual verification from Leaf 1 after its public documentation handoff. Leaf 2 owns only packaging and license notices; Leaf 3 independently reviewed packaging and release boundaries. Remote CI adds a dedicated deterministic packaging shard. No local Docker mutation overlaps the frontend Linux visual gate. Organization transfer to the owner-selected `veloz-security` is pending GitHub organization creation; both SentinelFlow and the existing pktide repository are requested for transfer.
+
 ## 1. Rebaseline decision
 
 The 2026-07-18 Gateway-first queue superseded the unexecuted 2026-07-17 log-first queue. The Gateway-first swarm has since produced an integrated implementation and local verification evidence in the shared workspace. Commit `d66c4b8a4842ad4226cb741e35331ba5b9068520` is a published baseline and an external clean clone passed `make check`; hosted CI run `29696139988` then passed all ten shards for implementation checkpoint `5ef870155bc59e6ac3c30279a7cd8be8d0249887`. Existing Syslog/parser Task IDs retain their meanings as P2 optional adapters; they do not enter this five-day queue or any release gate.

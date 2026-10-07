@@ -4,7 +4,7 @@
 
 This file applies to the entire repository.
 
-SentinelFlow is an early-stage explainable security-gateway prototype. Its v0.1 primary sensor is an inline Go HTTP reverse proxy in front of one fixed private upstream. It emits minimized request/response events, correlates them with authenticated application events, and produces constrained, reviewable response policies. Nginx, Syslog, firewall-log, and raw-packet sensors are not v0.1 release requirements.
+SentinelFlow is an experimental, Veloz-owned open-source defensive security gateway developed and maintained by Veloz Security Research. Its v0.1 primary sensor is an inline Go HTTP reverse proxy in front of one fixed private upstream. It emits minimized request/response events, correlates them with authenticated application events, and produces constrained, reviewable response policies. Nginx, Syslog, firewall-log, and raw-packet sensors are not v0.1 release requirements.
 
 Do not infer that a planned component exists merely because it appears in the README or design documents. Inspect the repository and tests before describing functionality as implemented or verified.
 

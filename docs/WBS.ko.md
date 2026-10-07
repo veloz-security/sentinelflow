@@ -10,6 +10,21 @@
 >
 > 실행 상태: release stabilization 진행 중. Tasklist completion은 evidence와 prerequisite를 계속 요구함
 
+## 0. 공개 연구 사전 릴리스 작업 (2026-10-07)
+
+소유자가 공개 프로젝트 구조 정리와 릴리스 게시를 요청했다. 이 작업은 `v0.1.0-rc.1`을 실험적 연구 사전 릴리스로 준비하며 구현 검증 완료 v0.1 gate를 완료하지 않는다. 범위는 M9-010, FR-021, NFR-005, NFR-010, NFR-011, ADR-007 및 RELEASE-SMOKE에 연결된다. Runtime과 enforcement contract는 변경하지 않는다.
+
+| Slot | Package | Exclusive ownership | Gate |
+| --- | --- | --- | --- |
+| ROOT | 통합과 게시 | README.md, AGENTS.md, canonical PRD/ADR/TDD/TASKLIST/WBS/readiness pair, release note | 모든 변경 검토, 문서 동기화, 검증된 asset만 게시 |
+| Leaf 1 | 공개 연구 문서 | docs/RESEARCH.md, docs/RESEARCH.ko.md, docs/RELEASE.md, docs/RELEASE.ko.md, CONTRIBUTING.md | Source 기반 주장, bilingual parity, 회사 관계를 임의로 만들지 않음 |
+| Leaf 2 | 재현 가능한 릴리스 패키징 | scripts/build-release.sh, scripts/check-release.sh, .github/workflows/release.yml | 명시적 tracked-file source archive, Linux build, checksum, 결정적 rebuild 및 failure check |
+| Leaf 3 | 독립 준비도 검토 | Read-only repository와 외부 임시 evidence | Backend 검증, release risk와 문서 검토, Docker 변경 없음 |
+
+통합 순서: prerelease 경계와 ownership 동결, 문서와 packaging 검토, local check 재실행, 통합 candidate commit, hosted CI 검증, immutable commit provenance와 known limitation을 포함한 prerelease 게시. ROOT만 stage, commit, push, tag, publish, shared lock 수정 및 canonical task 완료 처리를 할 수 있다. Leaf는 release readiness를 인증하지 않는다. Frontend 변경은 배정하지 않는다. 아래 7월 checkpoint는 날짜가 있는 과거 evidence로 보존하며 현재 roster가 아니다.
+
+Dependency repair 확장: 새로운 검사에서 Go와 npm advisory를 발견했다. ROOT가 go.mod/go.sum, backend image pin 및 web/package.json/package-lock.json을 소유하며 ADR-016이 좁은 patch 범위를 동결한다. M9-011 backend check는 Go `1.25.13`으로 local 통과했고 M9-012는 Leaf 1의 공개 문서 handoff 후 별도의 frontend unit/browser/visual 검증을 받는다. Leaf 2는 packaging과 license notice만 소유하고 Leaf 3은 packaging 및 release 경계를 독립 검토했다. Remote CI에는 결정적 packaging 전용 shard를 추가한다. Frontend Linux visual gate와 local Docker 변경은 겹치지 않는다. 소유자가 선택한 `veloz-security`로의 organization transfer는 GitHub 조직 생성을 기다리며 SentinelFlow와 기존 pktide repository 모두 이전 요청 범위에 포함된다.
+
 ## 1. 재기준화 결정
 
 2026-07-18 Gateway-first queue는 실행되지 않은 2026-07-17 log-first queue를 대체했다. 이후 Gateway-first swarm이 shared workspace에 integrated implementation과 local verification evidence를 만들었다. Commit `d66c4b8a4842ad4226cb741e35331ba5b9068520`는 publish된 baseline이고 외부 clean clone이 `make check`를 통과했으며 hosted CI run `29696139988`은 implementation checkpoint `5ef870155bc59e6ac3c30279a7cd8be8d0249887`에서 10개 shard를 모두 통과했다. 기존 Syslog/parser Task ID의 의미는 P2 선택형 adapter로 보존하지만 이번 5일 queue와 모든 release gate에서 제외한다.
