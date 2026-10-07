@@ -8,9 +8,11 @@
 
 SentinelFlow는 벨로즈(Veloz) 소유이며 공식 사이트는 [sec.veloz.kr](https://sec.veloz.kr)이다. 소유자는 [security@veloz.kr](mailto:security@veloz.kr)을 보안 문의 주소로 제공했다. 소유자가 공개 구조 정리와 릴리스 게시를 요청했다. `v0.1.0-rc.1`은 구현 검증 완료 v0.1 릴리스 및 과거 Build Week 제출과 별개인 실험적 연구 배포다. Production, 고객 실적, 인증 또는 CVP 승인 주장은 하지 않는다. Runtime과 enforcement contract는 변경하지 않는다.
 
-Implementation checkpoint `b125adec66864c87f5d37f15049514381dd9e4f3`에는 migration 34와 v2 expiry repair가 이미 commit되어 있으며 [CI run 29709922172](https://github.com/devwooops/sentinelflow/actions/runs/29709922172)이 해당 commit의 10개 shard를 모두 통과했다. 아래의 이전 “current-tree” 결과는 2026년 7월 snapshot이며 새로운 10월 rerun이 아니다. Release record는 자신의 exact commit과 verification을 명시해야 한다. 기존 P0 prerequisite와 full v0.1 acceptance gate는 독립적으로 충족될 때까지 open으로 유지한다. [Release guide](./RELEASE.ko.md), [research evidence](./RESEARCH.ko.md), ADR-015 및 M9-010을 참조한다.
+Implementation checkpoint `b125adec66864c87f5d37f15049514381dd9e4f3`에는 migration 34와 v2 expiry repair가 이미 commit되어 있으며 [CI run 29709922172](https://github.com/veloz-security/sentinelflow/actions/runs/29709922172)이 해당 commit의 10개 shard를 모두 통과했다. 아래의 이전 “current-tree” 결과는 2026년 7월 snapshot이며 새로운 10월 rerun이 아니다. Release record는 자신의 exact commit과 verification을 명시해야 한다. 기존 P0 prerequisite와 full v0.1 acceptance gate는 독립적으로 충족될 때까지 open으로 유지한다. [Release guide](./RELEASE.ko.md), [research evidence](./RESEARCH.ko.md), ADR-015 및 M9-010을 참조한다.
 
 공개 배포용 patch maintenance는 ADR-016을 따른다. Go `1.25.13`, `golang.org/x/text` `v0.39.0` 및 동일 major 내 frontend dependency 수정은 새로운 backend(M9-011) 및 독립 frontend(M9-012) 검증이 필요하다. 기존 safety contract와 full release gate는 유지한다.
+
+10월 검증: M9-011은 patched 88-package backend gate, 새로운 govulncheck, infrastructure contract 25/25, backend image build 및 unprivileged read-only/no-network runtime probe를 통과했다. M9-012는 optional npm peer normalization 후 npm audit(finding 0건), Vitest 39 file/363 test, CSP 1/1, 실제 browser test 88개 및 Linux visual 4/4를 통과했다. 이 독립 P1 maintenance task는 기존 P0 prerequisite graph를 완료하지 않는다. M9-013 이전을 검증했고 M9-010 게시는 pending이다.
 
 ## 1. 준비도 선언
 

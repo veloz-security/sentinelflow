@@ -6,7 +6,7 @@
 
 `v0.1.0-rc.1`은 벨로즈(Veloz) 소유 SentinelFlow의 **실험적 연구 사전 릴리스**다. 검토와 격리된 평가를 위해 소스 코드 및 Linux command binary를 패키징한다. Production 지원 약속, 인증 또는 구현 검증 완료 v0.1 릴리스 기준 전체가 완료됐다는 증거가 아니다.
 
-게시 상태, tag, commit, 첨부 checksum, 검증 기록의 기준은 [GitHub release 기록](https://github.com/devwooops/sentinelflow/releases)이다. 패키지 또는 tag만으로 M9-008이 완료되지 않는다. [PRD](./PRD.ko.md), [TDD](./TDD.ko.md), [Tasklist](./TASKLIST.ko.md), [WBS](./WBS.ko.md)의 모든 수용 및 안전 gate는 그대로 유효하다. [Readiness 기록](./IMPLEMENTATION_READINESS.ko.md)은 과거 증거와 남은 검증을 구분한다.
+게시 상태, tag, commit, 첨부 checksum, 검증 기록의 기준은 [GitHub release 기록](https://github.com/veloz-security/sentinelflow/releases)이다. 패키지 또는 tag만으로 M9-008이 완료되지 않는다. [PRD](./PRD.ko.md), [TDD](./TDD.ko.md), [Tasklist](./TASKLIST.ko.md), [WBS](./WBS.ko.md)의 모든 수용 및 안전 gate는 그대로 유효하다. [Readiness 기록](./IMPLEMENTATION_READINESS.ko.md)은 과거 증거와 남은 검증을 구분한다.
 
 ## 2. 산출물과 무결성
 
@@ -37,7 +37,7 @@ Checksum은 손상을 탐지하며 독립적인 게시자 서명이 아니다. �
 게시된 tag에서 시작한다.
 
 ```bash
-git clone --branch v0.1.0-rc.1 --depth 1 https://github.com/devwooops/sentinelflow.git
+git clone --branch v0.1.0-rc.1 --depth 1 https://github.com/veloz-security/sentinelflow.git
 cd sentinelflow
 ./scripts/prepare-demo.sh
 COMPOSE_DISABLE_ENV_FILE=1 OPENAI_API_KEY= docker compose \
@@ -107,13 +107,6 @@ Reference implementation은 하나의 고정 private upstream과 HTTP/1.1, Linux
 
 ## 회사 조직으로 저장소 이전
 
-소유자는 SentinelFlow와 기존 `devwooops/pktide` repository의 목적지 조직으로 `veloz-security`를 선택했다. 생성과 이전은 pending이다. 현재 GitHub API에서 해당 조직이 조회되지 않는다. `gh org`는 조직 목록 조회를 지원하지만 GitHub.com은 공개 조직 생성 endpoint를 제공하지 않는다. 먼저 GitHub가 지원하는 웹 절차로 조직을 생성해야 하며 아직 repository를 이전하거나 재생성하지 않았다.
+2026-10-07 소유자가 회사 조직 [veloz-security](https://github.com/veloz-security)를 생성했다. 기존 [SentinelFlow](https://github.com/veloz-security/sentinelflow)와 [pktide](https://github.com/veloz-security/pktide) repository를 재생성하지 않고 GitHub repository-transfer API로 이전했다. 두 repository의 ID, branch/tag commit SHA, release ID, pull-request ID, 공개 상태 및 administrator 권한이 유지됐다. 기존 pktide tag와 release도 보존했다. M9-013에 이 검증을 기록한다.
 
-조직이 존재하고 인증된 사용자가 필요한 owner/admin 권한을 가진 뒤에는 충돌하는 빈 repository를 만들지 말고 기존 repository를 이전한다.
-
-```bash
-gh api --method POST repos/devwooops/sentinelflow/transfer -f new_owner=veloz-security
-gh api --method POST repos/devwooops/pktide/transfer -f new_owner=veloz-security
-```
-
-두 repository의 최종 `full_name`과 권한을 검증한 뒤 local remote와 공개 repository/release link를 갱신한다. 별도로 검토한 module migration 전까지 GitHub redirect를 통해 Go module import path를 보존하며 repository 이전이 runtime contract 변경을 허용하지 않는다. 이전 후 source history, tag, release, issue 및 pull request를 확인해야 한다. M9-013이 이 외부 prerequisite를 추적하며 open 상태다.
+SentinelFlow의 local `origin`과 공개 repository/release link는 이제 조직 주소를 사용한다. 별도로 검토한 module migration 전까지 GitHub redirect를 통해 Go module import path `github.com/devwooops/sentinelflow`를 유지한다. Repository 소유권 변경은 runtime 또는 enforcement contract를 변경하지 않는다. MIT 저작자 고지를 보존한다.

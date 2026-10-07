@@ -6,7 +6,7 @@
 
 `v0.1.0-rc.1` is an **experimental research prerelease** of SentinelFlow, owned by Veloz (벨로즈). It packages source code and Linux command binaries for inspection and isolated evaluation. It is not a production support commitment, certification, or evidence that all implementation-qualified v0.1 release criteria are complete.
 
-The [GitHub release record](https://github.com/devwooops/sentinelflow/releases) is authoritative for publication status, tag, commit, attached checksums, and verification notes. A package or tag alone does not close M9-008. All acceptance and safety gates in the [PRD](./PRD.md), [TDD](./TDD.md), [Tasklist](./TASKLIST.md), and [WBS](./WBS.md) remain in force. The [readiness ledger](./IMPLEMENTATION_READINESS.md) distinguishes historical evidence from outstanding qualification.
+The [GitHub release record](https://github.com/veloz-security/sentinelflow/releases) is authoritative for publication status, tag, commit, attached checksums, and verification notes. A package or tag alone does not close M9-008. All acceptance and safety gates in the [PRD](./PRD.md), [TDD](./TDD.md), [Tasklist](./TASKLIST.md), and [WBS](./WBS.md) remain in force. The [readiness ledger](./IMPLEMENTATION_READINESS.md) distinguishes historical evidence from outstanding qualification.
 
 ## 2. Artifacts and integrity
 
@@ -37,7 +37,7 @@ Use a disposable Linux environment with at least 4 GB RAM, Docker 24+, Docker Co
 From the published tag:
 
 ```bash
-git clone --branch v0.1.0-rc.1 --depth 1 https://github.com/devwooops/sentinelflow.git
+git clone --branch v0.1.0-rc.1 --depth 1 https://github.com/veloz-security/sentinelflow.git
 cd sentinelflow
 ./scripts/prepare-demo.sh
 COMPOSE_DISABLE_ENV_FILE=1 OPENAI_API_KEY= docker compose \
@@ -107,13 +107,6 @@ Report ordinary reproducible defects in the repository, with the version and san
 
 ## Company organization transfer
 
-The owner selected `veloz-security` as the destination organization for SentinelFlow and the existing `devwooops/pktide` repository. Creation and transfer remain pending: the organization does not currently resolve through GitHub's API. `gh org` supports listing organizations, but GitHub.com does not provide a public organization-creation endpoint. An organization must first be created through GitHub's supported web flow; no repository has been transferred or recreated.
+On 2026-10-07 the owner created the company organization [veloz-security](https://github.com/veloz-security). The existing [SentinelFlow](https://github.com/veloz-security/sentinelflow) and [pktide](https://github.com/veloz-security/pktide) repositories were transferred through GitHub's repository-transfer API, without recreating repositories. Both retained their repository IDs, branch/tag commit SHAs, release IDs, pull-request IDs, public visibility, and administrator access. The existing pktide tag and release were preserved. M9-013 records this verification.
 
-Once the organization exists and the authenticated user has the required owner/admin rights, transfer the existing repositories rather than creating conflicting empty repositories:
-
-```bash
-gh api --method POST repos/devwooops/sentinelflow/transfer -f new_owner=veloz-security
-gh api --method POST repos/devwooops/pktide/transfer -f new_owner=veloz-security
-```
-
-Verify the final `full_name` and permissions for both repositories, then update local remotes and public repository/release links. Preserve the Go module import path through GitHub's redirect until a separately reviewed module migration; moving the repository does not authorize changing runtime contracts. Source history, tags, releases, issues, and pull requests must be checked after transfer. M9-013 tracks this external prerequisite and remains open.
+SentinelFlow's local `origin` and public repository/release links now use the organization address. The Go module import path remains `github.com/devwooops/sentinelflow` through GitHub's redirect until a separately reviewed module migration. Repository ownership changes do not change runtime or enforcement contracts. The MIT author notice remains intact.

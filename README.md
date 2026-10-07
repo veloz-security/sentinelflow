@@ -6,9 +6,9 @@ SentinelFlow is an explainable AI security gateway that observes web traffic thr
 
 > Status: **Experimental / Early Access.** This experimental research distribution is intended for evaluation; full v0.1 qualification remains open.
 
-**Owner:** [Veloz (벨로즈)](https://sec.veloz.kr) · **Repository maintainer:** [@devwooops](https://github.com/devwooops) · **Security contact:** [security@veloz.kr](mailto:security@veloz.kr)
+**Owner:** [Veloz (벨로즈)](https://sec.veloz.kr) · **Organization:** [veloz-security](https://github.com/veloz-security) · **Repository maintainer:** [@devwooops](https://github.com/devwooops) · **Security contact:** [security@veloz.kr](mailto:security@veloz.kr)
 
-[Research and evidence](./docs/RESEARCH.md) · [Release and installation guide](./docs/RELEASE.md) · [Releases](https://github.com/devwooops/sentinelflow/releases) · [Security policy](./SECURITY.md) · [Contributing](./CONTRIBUTING.md) · [Project history](./docs/HISTORY.md)
+[Research and evidence](./docs/RESEARCH.md) · [Release and installation guide](./docs/RELEASE.md) · [Releases](https://github.com/veloz-security/sentinelflow/releases) · [Security policy](./SECURITY.md) · [Contributing](./CONTRIBUTING.md) · [Project history](./docs/HISTORY.md)
 
 SentinelFlow is owned by Veloz and published as MIT-licensed defensive security research. Its current purpose is reproducible evaluation in authorized, isolated environments. Public source, tests, and release artifacts document the work; they do not establish production readiness, customer deployments, certification, or approval by a third-party access program.
 
@@ -465,7 +465,7 @@ macOS development can run the Gateway, API, worker, dispatcher, database, fronte
 From a fresh clone, generate the local secret/demo bundle and start the deterministic stub-analysis profile:
 
 ```bash
-git clone --branch v0.1.0-rc.1 --depth 1 https://github.com/devwooops/sentinelflow.git
+git clone --branch v0.1.0-rc.1 --depth 1 https://github.com/veloz-security/sentinelflow.git
 cd sentinelflow
 ./scripts/prepare-demo.sh
 COMPOSE_DISABLE_ENV_FILE=1 OPENAI_API_KEY= docker compose \

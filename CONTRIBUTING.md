@@ -1,6 +1,6 @@
 # Contributing to SentinelFlow
 
-SentinelFlow is an experimental MIT-licensed security gateway owned by Veloz (벨로즈). Contributions are reviewed in the [devwooops/sentinelflow repository](https://github.com/devwooops/sentinelflow). Read the [research overview](./docs/RESEARCH.md), [release scope](./docs/RELEASE.md), and [repository instructions](./AGENTS.md) before changing behavior.
+SentinelFlow is an experimental MIT-licensed security gateway owned by Veloz (벨로즈). Contributions are reviewed in the [devwooops/sentinelflow repository](https://github.com/veloz-security/sentinelflow). Read the [research overview](./docs/RESEARCH.md), [release scope](./docs/RELEASE.md), and [repository instructions](./AGENTS.md) before changing behavior.
 
 ## Propose a focused change
 

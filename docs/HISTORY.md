@@ -16,7 +16,7 @@ At runtime, GPT-5.6 analyzes compact structured incident facts after determinist
 
 ## 3. Ownership and public research publication
 
-SentinelFlow is owned by **Veloz (벨로즈)** and maintained publicly through [devwooops/sentinelflow](https://github.com/devwooops/sentinelflow). The company website is [sec.veloz.kr](https://sec.veloz.kr), and the security contact is [security@veloz.kr](mailto:security@veloz.kr). The owner confirmed this attribution for the 2026-10-07 public-documentation update. The project remains available under the existing [MIT License](../LICENSE).
+SentinelFlow is owned by **Veloz (벨로즈)** and maintained publicly through [devwooops/sentinelflow](https://github.com/veloz-security/sentinelflow). The company website is [sec.veloz.kr](https://sec.veloz.kr), and the security contact is [security@veloz.kr](mailto:security@veloz.kr). The owner confirmed this attribution for the 2026-10-07 public-documentation update. The project remains available under the existing [MIT License](../LICENSE).
 
 The 2026-10-07 restructuring separates research, provenance, release instructions, contribution guidance, and security reporting so that readers can inspect the work and reproduce a named version. The intended first public package is the experimental `v0.1.0-rc.1` prerelease. Its publication does not assert production readiness, customer adoption, certification, a completed independent audit, or acceptance into a vendor access program.
 
@@ -24,4 +24,4 @@ The 2026-10-07 restructuring separates research, provenance, release instruction
 
 The [Tasklist](./TASKLIST.md), [WBS](./WBS.md), and [Implementation Readiness](./IMPLEMENTATION_READINESS.md) retain implementation dependencies, recorded verification results, and open gates. Historical local or CI success is evidence for the identified revision and environment only. Publication of a research prerelease does not complete M9-008 or the full v0.1 acceptance process; Build Week submission evidence remains a separate historical deliverable.
 
-Use the [release guide](./RELEASE.md) to distinguish packaged artifacts, reproducible checks, and outstanding qualification. Use [Git history](https://github.com/devwooops/sentinelflow/commits/main/) and [GitHub Releases](https://github.com/devwooops/sentinelflow/releases) for the actual commit and publication record.
+Use the [release guide](./RELEASE.md) to distinguish packaged artifacts, reproducible checks, and outstanding qualification. Use [Git history](https://github.com/veloz-security/sentinelflow/commits/main/) and [GitHub Releases](https://github.com/veloz-security/sentinelflow/releases) for the actual commit and publication record.
