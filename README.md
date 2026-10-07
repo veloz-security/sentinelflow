@@ -4,8 +4,10 @@ Explainable AI security gateway with evidence-bound, administrator-approved resp
 
 SentinelFlow is an explainable AI security gateway that observes web traffic through an inline reverse proxy, correlates structured evidence, and applies temporary response actions only after strict validation and administrator HIL approval.
 
+Developed and maintained by [Veloz (벨로즈)](https://sec.veloz.kr) Security Research as open-source defensive security research. Research note: [SentinelFlow: Evidence-Bound Defensive Security Gateway](https://sec.veloz.kr/research/sentinelflow/) · Security contact: [security@veloz.kr](mailto:security@veloz.kr)
+
 > Status: **Still implementing.** The Gateway-first v0.1 implementation, contracts, database, control-plane services, administrator UI, isolated executor, and test harnesses exist and pass the verified local gates listed below.
-> Current implementation evidence includes RUN25 fast Compose E2E (log SHA-256 `4702571db361b411449dadc789995348f0254f0a07a1a2aefda36a79b070b877`), a later macOS execution of `./scripts/check-demo-e2e.sh --fast --browser-qa-hold-seconds 900 --run-browser-qa`, and successful [hosted CI run 29696139988](https://github.com/devwooops/sentinelflow/actions/runs/29696139988) for implementation checkpoint `5ef870155bc59e6ac3c30279a7cd8be8d0249887`. They passed the exact active/revoked browser flows, signed inspect, digest-mismatch fail-closed revoke, control-plane outage forwarding, restart/reconciliation, cleanup, all hosted quality shards, frontend functional-browser tests, and the pinned Linux visual baseline. Release qualification is still open: the default native-expiry run, native host-nft invariance, a billable OpenAI smoke call, release screenshots, and the five-minute 4 GB performance gate have not passed.
+> Current implementation evidence includes RUN25 fast Compose E2E (log SHA-256 `4702571db361b411449dadc789995348f0254f0a07a1a2aefda36a79b070b877`), a later macOS execution of `./scripts/check-demo-e2e.sh --fast --browser-qa-hold-seconds 900 --run-browser-qa`, and successful [hosted CI run 29696139988](https://github.com/veloz-security/sentinelflow/actions/runs/29696139988) for implementation checkpoint `5ef870155bc59e6ac3c30279a7cd8be8d0249887`. They passed the exact active/revoked browser flows, signed inspect, digest-mismatch fail-closed revoke, control-plane outage forwarding, restart/reconciliation, cleanup, all hosted quality shards, frontend functional-browser tests, and the pinned Linux visual baseline. Release qualification is still open: the default native-expiry run, native host-nft invariance, a billable OpenAI smoke call, release screenshots, and the five-minute 4 GB performance gate have not passed.
 
 ---
 
@@ -458,7 +460,7 @@ macOS development can run the Gateway, API, worker, dispatcher, database, fronte
 From a fresh clone, generate the local secret/demo bundle and start the deterministic stub-analysis profile:
 
 ```bash
-git clone https://github.com/devwooops/sentinelflow.git
+git clone https://github.com/veloz-security/sentinelflow.git
 cd sentinelflow
 ./scripts/prepare-demo.sh
 COMPOSE_DISABLE_ENV_FILE=1 OPENAI_API_KEY= docker compose \
