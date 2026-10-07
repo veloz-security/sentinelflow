@@ -8,7 +8,7 @@ The repository maintainer is [@devwooops](https://github.com/devwooops). No resp
 
 ## Supported versions
 
-The `v0.1.0-rc.1` research prerelease and current development branch are evaluation software. Reports are welcome for both; no stable production-supported release or guaranteed backport window exists. Use the release's exact commit when reporting an issue. Known limitations are documented in the [release guide](docs/RELEASE.md) and [README](README.md#known-limitations).
+The `v0.1.0-rc.2` research prerelease and current development branch are evaluation software. Reports are welcome for both; no stable production-supported release or guaranteed backport window exists. Use the release's exact commit when reporting an issue. Known limitations are documented in the [release guide](docs/RELEASE.md) and [README](README.md#known-limitations).
 
 ## System and trust boundaries
 

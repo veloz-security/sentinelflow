@@ -16,11 +16,11 @@
 
 ## 게시된 연구 릴리스 (2026-10-07)
 
-[v0.1.0-rc.1](https://github.com/veloz-security/sentinelflow/releases/tag/v0.1.0-rc.1)을 `1ae56b965355bd82d051a4794db26c72d2bb704d`에서 실험적 연구 prerelease로 게시했다. [Exact-source hosted CI](https://github.com/veloz-security/sentinelflow/actions/runs/37592532654)가 backend, database, frontend, recovery, 새로운 image security evidence 및 결정적 packaging을 포함한 11개 job을 모두 통과했다. 업로드한 asset 5개의 digest와 size는 검증한 local output과 일치한다. 별도 publication/maintenance 범위에서 M9-010, M9-011, M9-012, M9-013, M9-014를 완료했다. 구현 검증 완료 full v0.1의 P0 prerequisite, 최종 acceptance/performance rehearsal 및 release-capture 의무는 open이며 7월 runtime 결과를 새로운 10월 검증으로 바꾸어 주장하지 않는다.
+[v0.1.0-rc.2](https://github.com/veloz-security/sentinelflow/releases/tag/v0.1.0-rc.2)는 실험적 연구 prerelease다. 2026-10-07 project-history 문서를 제거하기 위해 저장소 이력을 재작성했고, 코드·contract·test는 바뀌지 않았지만 모든 commit ID가 바뀌었다. 이전 `v0.1.0-rc.1` prerelease는 철회했으며 그 11개 job hosted CI run `37592532654`와 asset digest는 재작성 전 commit `1ae56b965355bd82d051a4794db26c72d2bb704d`에만 적용된다. 이전 CI evidence와 함께 인용된 commit ID는 재작성 전 ID이며 [릴리스 안내](./RELEASE.ko.md)가 재작성된 이력과의 대응을 제공한다. `v0.1.0-rc.2`의 exact-source CI와 asset 검증은 실행된 뒤에만 기록한다. 별도 publication/maintenance 범위에서 M9-010, M9-011, M9-012, M9-013, M9-014를 완료했다. 구현 검증 완료 full v0.1의 P0 prerequisite, 최종 acceptance/performance rehearsal 및 release-capture 의무는 open이며 7월 runtime 결과를 새로운 10월 검증으로 바꾸어 주장하지 않는다.
 
 ## 공개 연구 배포 checkpoint (2026-10-07)
 
-SentinelFlow는 벨로즈(Veloz) 소유이며 공식 사이트는 [sec.veloz.kr](https://sec.veloz.kr)이다. 소유자는 [security@veloz.kr](mailto:security@veloz.kr)을 보안 문의 주소로 제공했다. 소유자가 공개 구조 정리와 릴리스 게시를 요청했다. `v0.1.0-rc.1`은 구현 검증 완료 v0.1 릴리스와 별개인 실험적 연구 배포다. Production, 고객 실적, 인증 또는 CVP 승인 주장은 하지 않는다. Runtime과 enforcement contract는 변경하지 않는다.
+SentinelFlow는 벨로즈(Veloz) 소유이며 공식 사이트는 [sec.veloz.kr](https://sec.veloz.kr)이다. 소유자는 [security@veloz.kr](mailto:security@veloz.kr)을 보안 문의 주소로 제공했다. 소유자가 공개 구조 정리와 릴리스 게시를 요청했다. `v0.1.0-rc.2`은 구현 검증 완료 v0.1 릴리스와 별개인 실험적 연구 배포다. Production, 고객 실적, 인증 또는 CVP 승인 주장은 하지 않는다. Runtime과 enforcement contract는 변경하지 않는다.
 
 Implementation checkpoint `b125adec66864c87f5d37f15049514381dd9e4f3`에는 migration 34와 v2 expiry repair가 이미 commit되어 있으며 [CI run 29709922172](https://github.com/veloz-security/sentinelflow/actions/runs/29709922172)이 해당 commit의 10개 shard를 모두 통과했다. 아래의 이전 “current-tree” 결과는 2026년 7월 snapshot이며 새로운 10월 rerun이 아니다. Release record는 자신의 exact commit과 verification을 명시해야 한다. 기존 P0 prerequisite와 full v0.1 acceptance gate는 독립적으로 충족될 때까지 open으로 유지한다. [Release guide](./RELEASE.ko.md), [research evidence](./RESEARCH.ko.md), ADR-015 및 M9-010을 참조한다.
 
