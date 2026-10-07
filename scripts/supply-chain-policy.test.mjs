@@ -398,7 +398,7 @@ test("image gate pins scanner, database, and networkless scan authority", () => 
   const text = [
     'buildkit_builder_image="moby/buildkit:v0.23.2@sha256:ddd1ca44b21eda906e81ab14a3d467fa6c39cd73b9a39df1196210edcb8db59e"',
     `scanner_image="aquasec/trivy:0.70.0@sha256:be1190afcb28352bfddc4ddeb71470835d16462af68d310f9f4bca710961a41e"`,
-    `scanner_database="ghcr.io/aquasecurity/trivy-db:2@sha256:dfb24f192c02d06a1c467c87177b61e67bfb816d86b6d8d55d52e29329f83035"`,
+    `scanner_database="ghcr.io/aquasecurity/trivy-db:2@sha256:a7ace06d6bb43a23fab1b9cae2a02c0b3e856006f2de75bb0c9661e655e3b74e"`,
     `prometheus_image="${approvedPrometheusImage}"`,
     "images: reproducible no-cache application builds",
     "images: unprivileged read-only runtime dependency probes",
@@ -741,11 +741,11 @@ test("scanner and frozen database verification fail closed", () => {
     validateScannerDatabaseMetadata(
       {
         Version: 2,
-        NextUpdate: "2026-07-19T18:43:59.213935938Z",
-        UpdatedAt: "2026-07-18T18:43:59.213936274Z",
-        DownloadedAt: "2026-07-18T20:00:00Z",
+        NextUpdate: "2026-10-08T07:38:55.515026457Z",
+        UpdatedAt: "2026-10-07T07:38:55.515026687Z",
+        DownloadedAt: "2026-10-07T09:00:00Z",
       },
-      new Date("2026-07-18T20:00:01Z"),
+      new Date("2026-10-07T09:00:01Z"),
     ),
   );
   assert.throws(
@@ -753,13 +753,26 @@ test("scanner and frozen database verification fail closed", () => {
       validateScannerDatabaseMetadata(
         {
           Version: 2,
-          NextUpdate: "2026-07-19T18:43:59.213935938Z",
-          UpdatedAt: "2026-07-18T18:43:59.213936274Z",
-          DownloadedAt: "2026-07-18T20:00:00Z",
+          NextUpdate: "2026-10-08T07:38:55.515026457Z",
+          UpdatedAt: "2026-10-07T07:38:55.515026687Z",
+          DownloadedAt: "2026-10-07T09:00:00Z",
         },
-        new Date("2026-07-18T19:00:00Z"),
+        new Date("2026-10-07T08:00:00Z"),
       ),
     /acquisition window/u,
+  );
+  assert.throws(
+    () =>
+      validateScannerDatabaseMetadata(
+        {
+          Version: 2,
+          NextUpdate: "2026-10-08T07:38:55.515026457Z",
+          UpdatedAt: "2026-10-07T07:38:55.515026687Z",
+          DownloadedAt: "2026-10-07T09:00:00Z",
+        },
+        new Date("2026-10-14T07:38:55.516Z"),
+      ),
+    /older than seven days/u,
   );
 });
 

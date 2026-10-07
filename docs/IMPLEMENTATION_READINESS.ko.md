@@ -14,11 +14,13 @@ Implementation checkpoint `b125adec66864c87f5d37f15049514381dd9e4f3`에는 migra
 
 10월 검증: M9-011은 patched 88-package backend gate, 새로운 govulncheck, infrastructure contract 25/25, backend image build 및 unprivileged read-only/no-network runtime probe를 통과했다. M9-012는 optional npm peer normalization 후 npm audit(finding 0건), Vitest 39 file/363 test, CSP 1/1, 실제 browser test 88개 및 Linux visual 4/4를 통과했다. 이 독립 P1 maintenance task는 기존 P0 prerequisite graph를 완료하지 않는다. M9-013 이전을 검증했고 M9-010 게시는 pending이다.
 
+Release image evidence 갱신은 ADR-016 아래 M9-014로 추적한다. 2026-10-07 immutable scanner database가 만료된 7월 snapshot을 교체하지만 7일 freshness, critical-vulnerability rejection, digest/metadata verification 및 image binding 요구는 유지한다. 이 package에서 Leaf 3은 scripts/check-images.sh와 scripts/supply-chain-policy{,.test}.mjs만 소유하고 ROOT는 canonical 문서와 최종 게시를 소유한다.
+
 ## 1. 준비도 선언
 
 SentinelFlow는 architecture readiness에서 integrated implementation과 release stabilization 단계로 이동했다. Gateway-first data plane, control-plane service, database, administrator UI, dispatcher/executor boundary, recovery/export/observability tooling 및 test harness가 shared workspace에 존재한다. 하지만 아직 complete v0.1 release를 주장하지 않는다.
 
-Tasklist completion은 code 존재보다 엄격하다. 현재 모든 deliverable과 prerequisite를 충족한 항목은 `M0-001`, `M0-002`, `M0-009`, `M0-015`, `M0-017`, `M0-019`뿐이다. Commit `d66c4b8a4842ad4226cb741e35331ba5b9068520`는 publish된 baseline이며 외부 clean clone이 `make check`를 통과했다. Hosted CI run `29696139988`은 implementation checkpoint `5ef870155bc59e6ac3c30279a7cd8be8d0249887`에서 10개 shard를 모두 통과했지만 `M0-006`과 `M0-008`은 `M0-003`과 `M0-007`이 unchecked prerequisite이므로 unchecked로 유지한다. M0가 완료되지 않았으므로 local implementation evidence가 강한 항목도 downstream M1–M10 checkbox는 open으로 유지한다.
+Tasklist completion은 code 존재보다 엄격하다. 기존 P0 graph에서 모든 deliverable과 prerequisite를 충족한 항목은 `M0-001`, `M0-002`, `M0-009`, `M0-015`, `M0-017`, `M0-019`뿐이다. Commit `d66c4b8a4842ad4226cb741e35331ba5b9068520`는 publish된 baseline이며 외부 clean clone이 `make check`를 통과했다. Hosted CI run `29696139988`은 implementation checkpoint `5ef870155bc59e6ac3c30279a7cd8be8d0249887`에서 10개 shard를 모두 통과했지만 `M0-006`과 `M0-008`은 `M0-003`과 `M0-007`이 unchecked prerequisite이므로 unchecked로 유지한다. M0가 완료되지 않았으므로 local implementation evidence가 강한 항목도 기존 downstream P0 M1–M10 checkbox는 open으로 유지한다.
 
 ## 2. 동결된 구현 기준선
 
@@ -102,7 +104,7 @@ AI contract는 공식 [`gpt-5.6-sol` model page](https://developers.openai.com/a
 
 Active wave는 RUN25 이후 release stabilization이다. Final root backend, publish된 PostgreSQL 17.10 33-migration/72-table, frontend CSP/unit/browser, contract-vector 및 E2E helper/shell gate에 targeted evidence가 있고 previously recorded M34/v2 implementation은 bounded expiry persistence/diagnostic을 추가하며 focused unit/contract/database-chain test가 통과했다. Publish된 baseline의 clean-clone `make check` evidence와 hosted CI run `29696139988`의 `5ef870155bc59e6ac3c30279a7cd8be8d0249887` 대상 10개 shard 통과도 있다. Serialized Linux native v6 rerun은 native expiry, host-ruleset invariance 및 4 GB performance qualification을 통과했고, 1회의 billable live `openai_responses`/`gpt-5.6-sol` probe도 control-plane mutation 없이 `status=ok`을 반환했다. 남은 목표는 current-SHA clean-checkout/CI, release screenshot/submission evidence 및 release packaging/decision이며 fast Compose browser evidence는 non-release UI proof로 남는다. Detailed roster, wave ledger, ownership 및 final gate는 [WBS.ko.md](./WBS.ko.md)에 있다.
 
-현재 release classification은 **Still implementing**이다. 이 문서는 branch, commit, push, pull request, tag, deployment, billable OpenAI call 또는 external submission을 authorize하지 않는다.
+구현 검증 완료 full v0.1은 **Still implementing** 상태이며 실험적 연구 배포는 ADR-015를 따른다. 이 문서는 branch, commit, push, pull request, tag, deployment, billable OpenAI call 또는 external submission을 authorize하지 않는다.
 
 ## 7. 검증 명령
 

@@ -683,9 +683,11 @@ Prerelease는 방어 보안 작업의 공개 기록이며 CVP 승인, production
 
 ADR-007의 Go patch pin만 대체한다. Go `1.25.13`과 `golang.org/x/text` `v0.39.0`을 사용하고 이에 맞는 digest-pinned backend build image 및 resolved module checksum을 사용한다. 취약한 frontend dependency는 기존 major version 내에서 갱신하며 exact direct pin과 commit된 npm lockfile을 유지한다. ROOT가 모든 dependency lock을 소유하고 frontend 검증은 backend patch 검증과 별도 task로 유지한다. HTTP protocol limit, authorization, evidence, signing, HIL 또는 enforcement contract 변경은 허용하지 않는다.
 
-배포 전에 patched commit에서 backend unit/framing/recovery test, frontend unit/build/browser check, 최신 dependency advisory, contract vector 및 결정적 packaging을 재실행한다. 7월 frozen image-scanner database의 날짜를 명시적으로 유지하며 새로운 dependency scan이 새로운 image database를 뜻하지 않는다. 이 release prerequisite를 M9-011(backend) 및 M9-012(frontend)로 기록하고 게시를 위해 실패 advisory를 억제하지 않는다.
+배포 전에 patched commit에서 backend unit/framing/recovery test, frontend unit/build/browser check, 최신 dependency advisory, contract vector 및 결정적 packaging을 재실행한다. 게시를 위해 immutable image-scanner database를 갱신하고 기존 snapshot 최대 7일 age 제한을 유지한다. Dependency scan이 image scan을 대체하지 않는다. 이 release prerequisite를 M9-011(backend) 및 M9-012(frontend)로 기록하고 게시를 위해 실패 advisory를 억제하지 않는다.
 
 동일 maintenance에서 더 이상 제공되지 않는 Alpine runtime package revision을 `ca-certificates=20260909-r0` 및 `tzdata=2026e-r0`으로 갱신하며 exact pin과 `nftables=1.1.6-r1`을 유지한다. Linux npm의 optional `@emnapi/runtime` peer를 lockfile에 명시적으로 resolve하며 해당 normalization으로 기존 package version은 변경하지 않는다.
+
+M9-014는 scanner database를 official `2026-10-07T07:38:55.515026687Z` snapshot, OCI digest `sha256:a7ace06d6bb43a23fab1b9cae2a02c0b3e856006f2de75bb0c9661e655e3b74e` 및 trivy.db SHA-256 `5f4b978a55284b1997dc31e9f2fc3f4f1abae80829f51451ade221d5675a69b9`으로 갱신한다. Scanner version, immutable acquisition, byte/metadata verification, freshness rejection, image evidence binding 및 critical-vulnerability gate는 유지한다. Stale-snapshot negative regression을 추가하고 게시 전 모든 배포 image scan을 재실행한다.
 
 ### Consequences
 

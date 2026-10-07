@@ -25,6 +25,8 @@
 
 Dependency repair 확장: 새로운 검사에서 Go와 npm advisory를 발견했다. ROOT가 go.mod/go.sum, backend image pin 및 web/package.json/package-lock.json을 소유하며 ADR-016이 좁은 patch 범위를 동결한다. M9-011 backend check는 Go `1.25.13`으로 local 통과했고 M9-012는 Leaf 1의 공개 문서 handoff 후 별도의 frontend unit/browser/visual 검증을 받는다. Leaf 2는 packaging과 license notice만 소유하고 Leaf 3은 packaging 및 release 경계를 독립 검토했다. Remote CI에는 결정적 packaging 전용 shard를 추가한다. Frontend Linux visual gate와 local Docker 변경은 겹치지 않는다. 소유자가 `veloz-security`를 생성했으며 SentinelFlow와 기존 pktide repository를 이전하고 repository ID, branch/tag SHA, release/PR ID, 공개 상태와 administrator 권한 보존을 검증했다.
 
+Release image evidence 갱신은 ADR-016 아래 M9-014로 추적한다. 2026-10-07 immutable scanner database가 만료된 7월 snapshot을 교체하지만 7일 freshness, critical-vulnerability rejection, digest/metadata verification 및 image binding 요구는 유지한다. 이 package에서 Leaf 3은 scripts/check-images.sh와 scripts/supply-chain-policy{,.test}.mjs만 소유하고 ROOT는 canonical 문서와 최종 게시를 소유한다.
+
 ## 1. 재기준화 결정
 
 2026-07-18 Gateway-first queue는 실행되지 않은 2026-07-17 log-first queue를 대체했다. 이후 Gateway-first swarm이 shared workspace에 integrated implementation과 local verification evidence를 만들었다. Commit `d66c4b8a4842ad4226cb741e35331ba5b9068520`는 publish된 baseline이고 외부 clean clone이 `make check`를 통과했으며 hosted CI run `29696139988`은 implementation checkpoint `5ef870155bc59e6ac3c30279a7cd8be8d0249887`에서 10개 shard를 모두 통과했다. 기존 Syslog/parser Task ID의 의미는 P2 선택형 adapter로 보존하지만 이번 5일 queue와 모든 release gate에서 제외한다.
@@ -69,7 +71,7 @@ Snapshot: 2026-07-20 (Asia/Seoul). 90-leaf table은 dependency 및 ownership pla
 | Compose E2E repair/certification | Current-tree native v6와 fast browser QA 통과, release qualification open | Native v6는 real TTL expiry, signed absent inspection, audit/recovery/forwarding convergence 및 cleanup 뒤 semantic host nftables unchanged로 exit `0`을 기록했다. Fast browser QA는 sanitized active/revoked capture와 함께 exit `0`을 기록했지만 non-release UI evidence임 |
 | Supply chain and final release | 이전 full supply-chain, clean-clone 및 hosted-CI evidence 유지, final release open | Current-tree five-minute 4 GB Linux performance gate는 `GATE_VERDICT=pass`, p95 `533us`, outage `436us`로 exit `0`을 기록했고 1회의 billable `openai_responses`/`gpt-5.6-sol` synthetic probe도 control-plane mutation 없이 `status=ok`을 반환했다. 남은 목표는 current-SHA clean-checkout/CI, final release capture/submission evidence 및 release decision임 |
 
-Tasklist checkbox는 이 wave ledger보다 엄격하다. Complete 항목은 `M0-001`, `M0-002`, `M0-009`, `M0-015`, `M0-017`, `M0-019`뿐이다. Hosted CI는 `M0-006`과 `M0-008`의 독립 quality-gate deliverable을 제공하지만 unchecked `M0-003`과 `M0-007` prerequisite 때문에 Tasklist 항목은 open으로 유지한다. `M0-005`에는 이제 성공한 live OpenAI result가 있지만 `M0-004`가 unchecked이므로 open으로 둔다. Current-SHA clean-checkout/CI, final release evidence 및 decision은 미완료다. 따라서 현재 release classification은 **Still implementing**이다.
+Tasklist checkbox는 이 wave ledger보다 엄격하다. 기존 P0 graph의 complete 항목은 `M0-001`, `M0-002`, `M0-009`, `M0-015`, `M0-017`, `M0-019`뿐이다. Hosted CI는 `M0-006`과 `M0-008`의 독립 quality-gate deliverable을 제공하지만 unchecked `M0-003`과 `M0-007` prerequisite 때문에 Tasklist 항목은 open으로 유지한다. `M0-005`에는 이제 성공한 live OpenAI result가 있지만 `M0-004`가 unchecked이므로 open으로 둔다. Current-SHA clean-checkout/CI, final release evidence 및 decision은 미완료다. 따라서 구현 검증 완료 full v0.1은 **Still implementing** 상태이며 실험적 연구 배포는 ADR-015를 따른다.
 
 이전 full supply-chain gate는 Docker-mutating E2E work 전에 완료되고 cleanup됐다. 다음 default native-expiry rerun은 fresh global baseline을 capture하고 cleanup 전 bounded redacted v2 lifecycle diagnostic을 내보내며 다른 Docker-mutating gate와 직렬 실행해야 한다.
 

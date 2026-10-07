@@ -95,7 +95,7 @@ make check-gateway-performance
 
 `make check` covers backend, contracts, documentation, frontend, security, supply chain, and threshold tuning. `make check-integration` covers database, nftables namespace, image, observability, recovery, and export checks. The final two commands require the qualifying Linux environment: the E2E gate must prove real kernel expiry and host nftables invariance, and the default performance gate requires the five-minute 4 GB reference run. `--fast` E2E and performance smoke mode are development evidence only. Each test harness manages its own disposable resources; inspect its prerequisites before execution.
 
-The supply-chain scanner uses the frozen Trivy database dated 2026-07-18. Re-running that check establishes consistency against that snapshot, not current October 2026 vulnerability assurance.
+The supply-chain scanner uses the immutable Trivy database snapshot dated 2026-10-07. Its digest, database bytes and metadata are pinned; snapshots older than seven days fail closed. Findings are bounded by that snapshot, not a guarantee against later vulnerability disclosures.
 
 An experimental publication must state which checks ran for its exact source revision and which remain unverified. Historical local results and older CI runs are not automatically promoted to current-release evidence. Full v0.1 qualification additionally requires all acceptance, failure/recovery, real-browser, sanitized release-capture, dependency, and final-decision criteria in the canonical documents. Research packaging does not mark those tasks complete or claim that a Build Week submission occurred.
 

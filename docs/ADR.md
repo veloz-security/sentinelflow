@@ -683,9 +683,11 @@ The prerelease is a public record of defensive security work; it does not guaran
 
 Supersede only the Go patch pin in ADR-007: use Go `1.25.13` and `golang.org/x/text` `v0.39.0`, with the corresponding digest-pinned backend build image and resolved module checksums. Upgrade vulnerable frontend dependencies within their existing major versions, preserving exact direct pins and the committed npm lockfile. Root owns all dependency locks; frontend verification remains a separate task from backend patch verification. No HTTP protocol limits, authorization, evidence, signing, HIL, or enforcement contract changes are authorized.
 
-Before distribution rerun backend unit/framing/recovery tests, frontend unit/build/browser checks, live dependency advisories, contract vectors, and deterministic packaging on the patched commit. Keep the July frozen image-scanner database explicitly dated; a fresh dependency scan is not a fresh image database. Record this release prerequisite as M9-011 (backend) and M9-012 (frontend), and do not suppress failing advisories to publish.
+Before distribution rerun backend unit/framing/recovery tests, frontend unit/build/browser checks, live dependency advisories, contract vectors, and deterministic packaging on the patched commit. Refresh the immutable image-scanner database for publication and retain the existing maximum seven-day snapshot age; a dependency scan does not substitute for an image scan. Record this release prerequisite as M9-011 (backend) and M9-012 (frontend), and do not suppress failing advisories to publish.
 
 The same maintenance also refreshes unavailable Alpine runtime package revisions to `ca-certificates=20260909-r0` and `tzdata=2026e-r0`, while preserving exact pins and `nftables=1.1.6-r1`. Linux npm resolves the optional `@emnapi/runtime` peer explicitly in the lockfile; existing package versions remain unchanged by that normalization.
+
+M9-014 refreshes the scanner database to the official `2026-10-07T07:38:55.515026687Z` snapshot, OCI digest `sha256:a7ace06d6bb43a23fab1b9cae2a02c0b3e856006f2de75bb0c9661e655e3b74e`, and trivy.db SHA-256 `5f4b978a55284b1997dc31e9f2fc3f4f1abae80829f51451ade221d5675a69b9`. Scanner version, immutable acquisition, byte/metadata verification, freshness rejection, image evidence binding, and critical-vulnerability gates remain unchanged. Add a stale-snapshot negative regression and rerun all shipped-image scans before publication.
 
 ### Consequences
 

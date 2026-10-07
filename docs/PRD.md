@@ -22,6 +22,8 @@ Implementation checkpoint `b125adec66864c87f5d37f15049514381dd9e4f3` already com
 
 Patch maintenance for public distribution follows ADR-016: Go `1.25.13`, `golang.org/x/text` `v0.39.0`, and same-major frontend dependency fixes require fresh backend (M9-011) and independent frontend (M9-012) verification. Existing safety contracts and the full release gates remain unchanged.
 
+Release image evidence refresh is tracked by M9-014 under ADR-016. The 2026-10-07 immutable scanner database replaces the expired July snapshot, while seven-day freshness, critical-vulnerability rejection, digest/metadata verification and image binding remain required. Leaf 3 owns only scripts/check-images.sh and scripts/supply-chain-policy{,.test}.mjs for this package; ROOT owns canonical documentation and final publication.
+
 ## 1. Purpose and interpretation
 
 This document turns the product intent in `README.md` into requirements that can be implemented and verified. The v0.1 target is an implementation-complete, single-node reference release: real code, persistence, REST/SSE, browser UI, OpenAI adapter, isolated nftables enforcement, recovery, performance, and security evidence must work together. It is not a claim of production readiness, high availability, multi-tenancy, or host-firewall deployment. The implementation now exists, but the remaining release gates in Section 12 still prevent a complete-release claim. Requirements in this document use the following interpretation:

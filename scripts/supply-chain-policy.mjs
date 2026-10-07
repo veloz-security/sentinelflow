@@ -24,15 +24,15 @@ export const approvedTrivyImage =
 export const approvedBuildkitImage =
   "moby/buildkit:v0.23.2@sha256:ddd1ca44b21eda906e81ab14a3d467fa6c39cd73b9a39df1196210edcb8db59e";
 export const approvedTrivyDatabase =
-  "ghcr.io/aquasecurity/trivy-db:2@sha256:dfb24f192c02d06a1c467c87177b61e67bfb816d86b6d8d55d52e29329f83035";
+  "ghcr.io/aquasecurity/trivy-db:2@sha256:a7ace06d6bb43a23fab1b9cae2a02c0b3e856006f2de75bb0c9661e655e3b74e";
 export const approvedTrivyDatabaseChecksums = Object.freeze({
   "trivy.db":
-    "1b9e589f5b930a171f5c09399b7b47efb21425b6fe94cd41ebbfb2533bef34c1",
+    "5f4b978a55284b1997dc31e9f2fc3f4f1abae80829f51451ade221d5675a69b9",
 });
 export const approvedTrivyDatabaseMetadata = Object.freeze({
   Version: 2,
-  NextUpdate: "2026-07-19T18:43:59.213935938Z",
-  UpdatedAt: "2026-07-18T18:43:59.213936274Z",
+  NextUpdate: "2026-10-08T07:38:55.515026457Z",
+  UpdatedAt: "2026-10-07T07:38:55.515026687Z",
 });
 
 function commandScript(lines) {

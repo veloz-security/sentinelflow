@@ -16,7 +16,7 @@ At runtime, GPT-5.6 analyzes compact structured incident facts after determinist
 
 ## 3. Ownership and public research publication
 
-SentinelFlow is owned by **Veloz (벨로즈)** and maintained publicly through [devwooops/sentinelflow](https://github.com/veloz-security/sentinelflow). The company website is [sec.veloz.kr](https://sec.veloz.kr), and the security contact is [security@veloz.kr](mailto:security@veloz.kr). The owner confirmed this attribution for the 2026-10-07 public-documentation update. The project remains available under the existing [MIT License](../LICENSE).
+SentinelFlow is owned by **Veloz (벨로즈)** and maintained publicly through [veloz-security/sentinelflow](https://github.com/veloz-security/sentinelflow). The company website is [sec.veloz.kr](https://sec.veloz.kr), and the security contact is [security@veloz.kr](mailto:security@veloz.kr). The owner confirmed this attribution for the 2026-10-07 public-documentation update. The project remains available under the existing [MIT License](../LICENSE).
 
 The 2026-10-07 restructuring separates research, provenance, release instructions, contribution guidance, and security reporting so that readers can inspect the work and reproduce a named version. The intended first public package is the experimental `v0.1.0-rc.1` prerelease. Its publication does not assert production readiness, customer adoption, certification, a completed independent audit, or acceptance into a vendor access program.
 

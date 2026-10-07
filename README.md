@@ -599,7 +599,7 @@ Expected v0.1 limitations include:
 - signed demo-history activation lasts one hour and has no in-place renewal; expiry requires a complete disposable profile/volume reset and a newly sealed run;
 - the demo importer and activator roles are PostgreSQL cluster-global, so the reference lifecycle assumes one isolated SentinelFlow demo profile per PostgreSQL cluster and rejects unsafe cross-database role state.
 
-The experimental research prerelease does not complete the full v0.1 qualification: final release rehearsal, frontend certification/captures, prerequisite completion, and the implementation-qualified release decision remain open. The live OpenAI probe has now passed, while native Linux lifecycle/host-invariance and the documented 4 GB performance gate have current-tree runtime evidence; none of these alone authorize a release.
+The experimental research prerelease does not complete the full v0.1 qualification: final release rehearsal, frontend certification/captures, prerequisite completion, and the implementation-qualified release decision remain open. The July 2026 record includes a successful live OpenAI probe, native Linux lifecycle/host-invariance and the documented 4 GB performance gate; these are historical results, not fresh qualification of the patched October release.
 
 SentinelFlow is an implementation-oriented reference security gateway, not a production replacement for a mature WAF, SIEM, IDS, IPS, reverse proxy, or professional security review.
 
