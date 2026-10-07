@@ -14,6 +14,12 @@
 >
 > Source: [README](../README.md)
 
+## Public research distribution checkpoint (2026-10-07)
+
+SentinelFlow is owned by Veloz (벨로즈), whose official site is [sec.veloz.kr](https://sec.veloz.kr); the owner supplied [security@veloz.kr](mailto:security@veloz.kr) as the security contact. The owner requested public restructuring and release publication. `v0.1.0-rc.1` is an experimental research distribution, separate from the implementation-qualified v0.1 release and historical Build Week submission. No production, customer, certification, or CVP approval claim is made. Runtime and enforcement contracts are unchanged.
+
+Implementation checkpoint `b125adec66864c87f5d37f15049514381dd9e4f3` already committed migration 34 and the v2 expiry repair; [CI run 29709922172](https://github.com/devwooops/sentinelflow/actions/runs/29709922172) passed all ten shards for that commit. Earlier references below to “current-tree” results describe the July 2026 snapshot, not a fresh October rerun. The release record must identify its own exact commit and verification. Existing P0 prerequisites and full v0.1 acceptance gates remain open until independently satisfied. See [release guide](./RELEASE.md), [research evidence](./RESEARCH.md), ADR-015, and M9-010.
+
 ## 1. Purpose and status semantics
 
 This document collects the design principles, trust boundaries, and architecture described in `README.md` plus explicit project-owner decisions recorded here. The project now has an integrated prototype, while some release commands and environment-specific evidence remain unverified. Therefore, **Accepted** means a product or safety decision is frozen for implementation; it does not by itself mean release or operational verification is complete.
@@ -43,6 +49,8 @@ Statuses are interpreted as follows:
 | [ADR-012](#adr-012-freeze-gateway-edge-delivery-and-once-only-enforcement-protocols) | Gateway edge, delivery integrity, exact AI/HIL contracts, and once-only enforcement protocols | Accepted — implementation evidence present; integrated release verification incomplete | FR-008~FR-016, FR-020~FR-026, NFR-001~NFR-003, NFR-006~NFR-009, NFR-012~NFR-014 |
 | [ADR-013](#adr-013-stage-and-expire-demo-history-authority-without-renewable-worker-privilege) | Staged, non-renewable signed demo-history authority | Accepted — targeted implementation evidence present; release verification incomplete | FR-012, FR-020, NFR-001~NFR-002, NFR-006, NFR-008~NFR-011 |
 | [ADR-014](#adr-014-bind-expiry-lifecycle-to-a-signed-read-back-interval) | Signed read-back interval and bounded expiry lifecycle | Accepted — implementation and release verification required | FR-014~FR-016, NFR-001~NFR-003, NFR-006~NFR-009 |
+| [ADR-015](#adr-015-publish-experimental-research-distributions-separately-from-full-v01-qualification) | Experimental research distribution | Accepted — publication verification required | FR-021, NFR-005, NFR-010, NFR-011 |
+| [ADR-016](#adr-016-refresh-vulnerable-dependencies-before-public-distribution) | Refresh vulnerable dependencies before public distribution | Accepted — regression verification required | FR-021~FR-026, NFR-002, NFR-005, NFR-010, NFR-011 |
 
 FR/NFR ranges are inclusive; for example, `FR-005~FR-007` means every consecutive ID from both endpoints.
 
@@ -644,6 +652,42 @@ The corrective design must preserve the existing properties: the executor alone 
 - Lifecycle storage and schedules gain an explicit bounded expiry contract and a result-schema migration.
 - The native failure is retained as evidence of an unmet release condition; no documentation claim changes it into a passing expiry test.
 - The correction increases executor/result and database compatibility work, but keeps expiry, recovery, and alert decisions evidence-bound rather than dependent on a locally guessed timestamp.
+
+---
+
+## ADR-015: Publish experimental research distributions separately from full v0.1 qualification
+
+### Status
+
+**Accepted — publication verification required.** The owner requested public restructuring and release publication on 2026-10-07 and confirmed Veloz ownership, official website, and security contact.
+
+### Decision
+
+Publish `v0.1.0-rc.1` as an explicitly experimental GitHub prerelease for authorized research evaluation. Keep the module path, runtime boundaries, migration order, MIT author notice, and all full v0.1 acceptance gates unchanged. Public documentation identifies Veloz ownership and separates implemented behavior, historical evidence, fresh release verification, and unresolved work. Preserve the Build Week origin in project history; a research publication does not mark its submission complete.
+
+Distribute only committed source and reproducible Linux build artifacts with checksums and exact commit/toolchain provenance. A release must identify checks actually run and any failures or unavailable checks. Fresh CI and packaging checks are required before publication. An artifact checksum proves byte integrity, not publisher identity or security certification. This work is M9-010 and supports NFR-005, NFR-010, NFR-011 without completing M9-008 or weakening FR-021.
+
+### Consequences
+
+The prerelease is a public record of defensive security work; it does not guarantee CVP admission, production readiness, or customer usage. Full implementation qualification remains governed by PRD section 12 and the existing Tasklist dependencies. Any future promotion to a stable version requires those gates and a separate release decision.
+
+---
+
+## ADR-016: Refresh vulnerable dependencies before public distribution
+
+### Status
+
+**Accepted — regression verification required.** Fresh release checks on 2026-10-07 found seven reachable Go vulnerability reports and eight high-severity npm dependency findings. Publishing the existing binaries would fail the established security gate.
+
+### Decision
+
+Supersede only the Go patch pin in ADR-007: use Go `1.25.13` and `golang.org/x/text` `v0.39.0`, with the corresponding digest-pinned backend build image and resolved module checksums. Upgrade vulnerable frontend dependencies within their existing major versions, preserving exact direct pins and the committed npm lockfile. Root owns all dependency locks; frontend verification remains a separate task from backend patch verification. No HTTP protocol limits, authorization, evidence, signing, HIL, or enforcement contract changes are authorized.
+
+Before distribution rerun backend unit/framing/recovery tests, frontend unit/build/browser checks, live dependency advisories, contract vectors, and deterministic packaging on the patched commit. Keep the July frozen image-scanner database explicitly dated; a fresh dependency scan is not a fresh image database. Record this release prerequisite as M9-011 (backend) and M9-012 (frontend), and do not suppress failing advisories to publish.
+
+### Consequences
+
+Historical July test evidence remains valid only for its recorded toolchain. New artifacts require fresh verification. This patch maintenance preserves FR-021~FR-026, NFR-002, NFR-005, NFR-010, NFR-011, and the pinned-parser negative-test obligations.
 
 ---
 

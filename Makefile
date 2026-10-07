@@ -13,7 +13,7 @@ check-database:
 
 check-docs:
 	node scripts/validate-docs.mjs
-	npx --yes markdownlint-cli --disable MD013 MD024 -- README.md AGENTS.md docs/*.md
+	npx --yes markdownlint-cli --disable MD013 MD024 -- README.md AGENTS.md SECURITY.md CONTRIBUTING.md docs/*.md
 	git diff --check
 
 check-export:

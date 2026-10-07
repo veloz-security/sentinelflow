@@ -12,6 +12,14 @@ const root = path.resolve(
 const markdownFiles = [
   "README.md",
   "AGENTS.md",
+  "SECURITY.md",
+  "CONTRIBUTING.md",
+  "docs/RESEARCH.md",
+  "docs/RESEARCH.ko.md",
+  "docs/HISTORY.md",
+  "docs/HISTORY.ko.md",
+  "docs/RELEASE.md",
+  "docs/RELEASE.ko.md",
   "docs/PRD.md",
   "docs/PRD.ko.md",
   "docs/ADR.md",
@@ -26,6 +34,9 @@ const markdownFiles = [
   "docs/IMPLEMENTATION_READINESS.ko.md",
 ];
 const pairs = [
+  ["docs/RESEARCH.md", "docs/RESEARCH.ko.md"],
+  ["docs/HISTORY.md", "docs/HISTORY.ko.md"],
+  ["docs/RELEASE.md", "docs/RELEASE.ko.md"],
   ["docs/PRD.md", "docs/PRD.ko.md"],
   ["docs/ADR.md", "docs/ADR.ko.md"],
   ["docs/TDD.md", "docs/TDD.ko.md"],
