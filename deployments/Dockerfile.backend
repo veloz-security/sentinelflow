@@ -45,9 +45,9 @@ ARG VERSION=dev
 ARG SOURCE_DATE_EPOCH=0
 
 RUN apk add --no-cache \
-        ca-certificates=20260611-r0 \
+        ca-certificates=20260909-r0 \
         nftables=1.1.6-r1 \
-        tzdata=2026c-r0 \
+        tzdata=2026e-r0 \
     && addgroup -S -g 65532 sentinelflow \
     && adduser -S -D -H -u 65532 -G sentinelflow sentinelflow \
     && install -d -o 65532 -g 65532 -m 0750 /app \

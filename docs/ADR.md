@@ -685,6 +685,8 @@ Supersede only the Go patch pin in ADR-007: use Go `1.25.13` and `golang.org/x/t
 
 Before distribution rerun backend unit/framing/recovery tests, frontend unit/build/browser checks, live dependency advisories, contract vectors, and deterministic packaging on the patched commit. Keep the July frozen image-scanner database explicitly dated; a fresh dependency scan is not a fresh image database. Record this release prerequisite as M9-011 (backend) and M9-012 (frontend), and do not suppress failing advisories to publish.
 
+The same maintenance also refreshes unavailable Alpine runtime package revisions to `ca-certificates=20260909-r0` and `tzdata=2026e-r0`, while preserving exact pins and `nftables=1.1.6-r1`. Linux npm resolves the optional `@emnapi/runtime` peer explicitly in the lockfile; existing package versions remain unchanged by that normalization.
+
 ### Consequences
 
 Historical July test evidence remains valid only for its recorded toolchain. New artifacts require fresh verification. This patch maintenance preserves FR-021~FR-026, NFR-002, NFR-005, NFR-010, NFR-011, and the pinned-parser negative-test obligations.
