@@ -4,6 +4,10 @@
 
 마지막 업데이트: 2026-07-20
 
+## 게시된 연구 릴리스 (2026-10-07)
+
+[v0.1.0-rc.1](https://github.com/veloz-security/sentinelflow/releases/tag/v0.1.0-rc.1)을 `1ae56b965355bd82d051a4794db26c72d2bb704d`에서 실험적 연구 prerelease로 게시했다. [Exact-source hosted CI](https://github.com/veloz-security/sentinelflow/actions/runs/37592532654)가 backend, database, frontend, recovery, 새로운 image security evidence 및 결정적 packaging을 포함한 11개 job을 모두 통과했다. 업로드한 asset 5개의 digest와 size는 검증한 local output과 일치한다. 별도 publication/maintenance 범위에서 M9-010, M9-011, M9-012, M9-013, M9-014를 완료했다. 구현 검증 완료 full v0.1의 P0 prerequisite, 최종 acceptance/performance rehearsal 및 release-capture 의무는 open이며 7월 runtime 결과를 새로운 10월 검증으로 바꾸어 주장하지 않는다.
+
 ## 공개 연구 배포 checkpoint (2026-10-07)
 
 SentinelFlow는 벨로즈(Veloz) 소유이며 공식 사이트는 [sec.veloz.kr](https://sec.veloz.kr)이다. 소유자는 [security@veloz.kr](mailto:security@veloz.kr)을 보안 문의 주소로 제공했다. 소유자가 공개 구조 정리와 릴리스 게시를 요청했다. `v0.1.0-rc.1`은 구현 검증 완료 v0.1 릴리스와 별개인 실험적 연구 배포다. Production, 고객 실적, 인증 또는 CVP 승인 주장은 하지 않는다. Runtime과 enforcement contract는 변경하지 않는다.
@@ -12,7 +16,7 @@ Implementation checkpoint `b125adec66864c87f5d37f15049514381dd9e4f3`에는 migra
 
 공개 배포용 patch maintenance는 ADR-016을 따른다. Go `1.25.13`, `golang.org/x/text` `v0.39.0` 및 동일 major 내 frontend dependency 수정은 새로운 backend(M9-011) 및 독립 frontend(M9-012) 검증이 필요하다. 기존 safety contract와 full release gate는 유지한다.
 
-10월 검증: M9-011은 patched 88-package backend gate, 새로운 govulncheck, infrastructure contract 25/25, backend image build 및 unprivileged read-only/no-network runtime probe를 통과했다. M9-012는 optional npm peer normalization 후 npm audit(finding 0건), Vitest 39 file/363 test, CSP 1/1, 실제 browser test 88개 및 Linux visual 4/4를 통과했다. 이 독립 P1 maintenance task는 기존 P0 prerequisite graph를 완료하지 않는다. M9-013 이전을 검증했고 M9-010 게시는 pending이다.
+10월 검증: M9-011은 patched 88-package backend gate, 새로운 govulncheck, infrastructure contract 25/25, backend image build 및 unprivileged read-only/no-network runtime probe를 통과했다. M9-012는 optional npm peer normalization 후 npm audit(finding 0건), Vitest 39 file/363 test, CSP 1/1, 실제 browser test 88개 및 Linux visual 4/4를 통과했다. 이 독립 P1 maintenance task는 기존 P0 prerequisite graph를 완료하지 않는다. M9-013 이전과 M9-010 실험적 게시를 검증했다.
 
 Release image evidence 갱신은 ADR-016 아래 M9-014로 추적한다. 2026-10-07 immutable scanner database가 만료된 7월 snapshot을 교체하지만 7일 freshness, critical-vulnerability rejection, digest/metadata verification 및 image binding 요구는 유지한다. 이 package에서 Leaf 3은 scripts/check-images.sh와 scripts/supply-chain-policy{,.test}.mjs만 소유하고 ROOT는 canonical 문서와 최종 게시를 소유한다.
 
@@ -55,7 +59,7 @@ Normative detail은 [PRD.ko.md](./PRD.ko.md), [ADR.ko.md](./ADR.ko.md), [TDD.ko.
 | --- | --- | --- |
 | Workflow 및 configuration | `AGENTS.md`, `.gitignore`, `.env.example`, typed safe configuration | 존재함. Secret-bearing local file은 ignored 상태이고 documentation evidence 밖에 유지함 |
 | Contract | AI input/prompt/output, event, HIL/JCS, protected IPv4, nft base/live schema, UDS, capability/result, journal, history, vector | Contract-vector gate 통과 |
-| Backend 및 data plane | Go `1.25.12`, Gateway, API, worker, detector, validator, dispatcher, executor, simulator, lifecycle, retention, recovery, export, metrics, smoke command | 88개 `cmd`/`internal` package 대상 backend format/vet/staticcheck/test/build gate 통과 |
+| Backend 및 data plane | Go `1.25.13`, Gateway, API, worker, detector, validator, dispatcher, executor, simulator, lifecycle, retention, recovery, export, metrics, smoke command | 88개 `cmd`/`internal` package 대상 backend format/vet/staticcheck/test/build gate 통과 |
 | Database | PostgreSQL role, SQL query source/sqlc configuration, `000034_execution_result_v2_expiry_bounds`를 포함한 up migration 34개, staged demo-history activation, repeated-content-digest identity, API-only validation-attempt projection, stale-analysis supersession 및 verification fixture | Publish된 final root PostgreSQL 17.10 33-migration/72-table verifier가 fresh/restart-noop·`33→24→33`·ACL·sqlc·digest-identity·projection·raw-access-denial·supersession check를 통과했다. Current M34 database-chain test는 v2 bounds/no-reuse contract를 통과했지만 native release result는 아님 |
 | Frontend | React/TypeScript/Vite/MUI administrator investigation, HIL, lifecycle, revocation, SSE, failure state 및 strict production CSP | Final root verification이 Vitest file 39개/test 363개와 deployment-CSP Chromium 1/1을 보고했으며 release-level browser certification은 pending임 |
 | Deployment | Application image, one-shot history importer/handoff/activator와 isolated analysis/validation capability volume을 포함한 Compose topology, isolated network/UDS/volume, Prometheus | RUN25 fast는 mutation/outage/restart path를 다뤘고 이후 macOS `--run-browser-qa` 실행은 login 재시도나 limit 변경 없이 revoked phase의 고정 61초 pre-hash login-window 대기 후 active/revoked browser QA를 통과했지만 default native-expiry와 native host-ruleset evidence는 open임 |

@@ -4,6 +4,10 @@
 
 Last updated: 2026-07-20
 
+## Published research release (2026-10-07)
+
+[v0.1.0-rc.1](https://github.com/veloz-security/sentinelflow/releases/tag/v0.1.0-rc.1) is published as an experimental research prerelease from `1ae56b965355bd82d051a4794db26c72d2bb704d`. [Exact-source hosted CI](https://github.com/veloz-security/sentinelflow/actions/runs/37592532654) passed all 11 jobs, including backend, database, frontend, recovery, fresh image security evidence, and deterministic packaging. The five uploaded asset digests and sizes match local verified outputs. M9-010, M9-011, M9-012, M9-013, and M9-014 are complete for this separate publication/maintenance scope. Full implementation-qualified v0.1 P0 prerequisites, final acceptance/performance rehearsal and release-capture obligations remain open; July runtime results have not been relabeled as fresh October qualification.
+
 ## Public research distribution checkpoint (2026-10-07)
 
 SentinelFlow is owned by Veloz (벨로즈), whose official site is [sec.veloz.kr](https://sec.veloz.kr); the owner supplied [security@veloz.kr](mailto:security@veloz.kr) as the security contact. The owner requested public restructuring and release publication. `v0.1.0-rc.1` is an experimental research distribution, separate from the implementation-qualified v0.1 release. No production, customer, certification, or CVP approval claim is made. Runtime and enforcement contracts are unchanged.
@@ -12,7 +16,7 @@ Implementation checkpoint `b125adec66864c87f5d37f15049514381dd9e4f3` already com
 
 Patch maintenance for public distribution follows ADR-016: Go `1.25.13`, `golang.org/x/text` `v0.39.0`, and same-major frontend dependency fixes require fresh backend (M9-011) and independent frontend (M9-012) verification. Existing safety contracts and the full release gates remain unchanged.
 
-October verification: M9-011 passed the patched 88-package backend gate, fresh govulncheck, infrastructure contract 25/25, backend image build and an unprivileged read-only/no-network runtime probe. M9-012 passed npm audit (zero findings), 39 Vitest files/363 tests, CSP 1/1, 88 real browser tests, and Linux visual 4/4 after normalizing the optional npm peer. These standalone P1 maintenance tasks do not complete the original P0 prerequisite graph. M9-013 transfer is verified; M9-010 publication remains pending.
+October verification: M9-011 passed the patched 88-package backend gate, fresh govulncheck, infrastructure contract 25/25, backend image build and an unprivileged read-only/no-network runtime probe. M9-012 passed npm audit (zero findings), 39 Vitest files/363 tests, CSP 1/1, 88 real browser tests, and Linux visual 4/4 after normalizing the optional npm peer. These standalone P1 maintenance tasks do not complete the original P0 prerequisite graph. M9-013 transfer and M9-010 experimental publication are verified.
 
 Release image evidence refresh is tracked by M9-014 under ADR-016. The 2026-10-07 immutable scanner database replaces the expired July snapshot, while seven-day freshness, critical-vulnerability rejection, digest/metadata verification and image binding remain required. Leaf 3 owns only scripts/check-images.sh and scripts/supply-chain-policy{,.test}.mjs for this package; ROOT owns canonical documentation and final publication.
 
@@ -55,7 +59,7 @@ Normative detail lives in [PRD.md](./PRD.md), [ADR.md](./ADR.md), and [TDD.md](.
 | --- | --- | --- |
 | Workflow and configuration | `AGENTS.md`, `.gitignore`, `.env.example`, typed safe configuration | Present; secret-bearing local files remain ignored and outside documentation evidence |
 | Contracts | AI input/prompt/output, events, HIL/JCS, protected IPv4, nft base/live schema, UDS, capability/result, journal, history, and vectors | Contract-vector gate passed |
-| Backend and data plane | Go `1.25.12`; Gateway, API, worker, detector, validator, dispatcher, executor, simulator, lifecycle, retention, recovery, export, metrics, and smoke commands | Backend format/vet/staticcheck/test/build gate passed across 88 `cmd`/`internal` packages |
+| Backend and data plane | Go `1.25.13`; Gateway, API, worker, detector, validator, dispatcher, executor, simulator, lifecycle, retention, recovery, export, metrics, and smoke commands | Backend format/vet/staticcheck/test/build gate passed across 88 `cmd`/`internal` packages |
 | Database | PostgreSQL roles, SQL query sources/sqlc configuration, 34 up migrations including `000034_execution_result_v2_expiry_bounds`, staged demo-history activation, repeated-content-digest identity, API-only validation-attempt projection, stale-analysis supersession, and verification fixtures | The published final root PostgreSQL 17.10 33-migration/72-table verifier passed fresh/restart-noop, `33→24→33`, ACL, sqlc, digest-identity, projection, raw-access-denial, and supersession checks. The current M34 database-chain test passes its v2 bounds/no-reuse contract; it is not a native release result |
 | Frontend | React/TypeScript/Vite/MUI administrator investigation, HIL, lifecycle, revocation, SSE, failure states, and strict production CSP | Final root verification reports 39 Vitest files/363 tests and deployment-CSP Chromium 1/1; release-level browser certification remains pending |
 | Deployment | Application images, Compose topology with one-shot history importer/handoff/activator and isolated analysis/validation capability volumes, isolated networks/UDS/volumes, Prometheus | Current-tree Linux native v6 E2E exited `0` with real TTL expiry, signed absence, audit/recovery/forwarding convergence, and semantic host nftables unchanged after cleanup; fast browser QA exited `0` with sanitized active/revoked screenshots, which remain non-release UI evidence |

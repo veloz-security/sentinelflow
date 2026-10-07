@@ -10,6 +10,10 @@
 >
 > Execution state: release stabilization in progress; Tasklist completion remains evidence- and prerequisite-bound
 
+## Published research release (2026-10-07)
+
+[v0.1.0-rc.1](https://github.com/veloz-security/sentinelflow/releases/tag/v0.1.0-rc.1) is published as an experimental research prerelease from `1ae56b965355bd82d051a4794db26c72d2bb704d`. [Exact-source hosted CI](https://github.com/veloz-security/sentinelflow/actions/runs/37592532654) passed all 11 jobs, including backend, database, frontend, recovery, fresh image security evidence, and deterministic packaging. The five uploaded asset digests and sizes match local verified outputs. M9-010, M9-011, M9-012, M9-013, and M9-014 are complete for this separate publication/maintenance scope. Full implementation-qualified v0.1 P0 prerequisites, final acceptance/performance rehearsal and release-capture obligations remain open; July runtime results have not been relabeled as fresh October qualification.
+
 ## 0. Public research prerelease work (2026-10-07)
 
 The owner requested public project restructuring and release publication. This work prepares `v0.1.0-rc.1` as an experimental research prerelease; it does not complete the implementation-qualified v0.1 gate. Scope maps to M9-010, FR-021, NFR-005, NFR-010, NFR-011, ADR-007, and RELEASE-SMOKE. Runtime and enforcement contracts remain unchanged.

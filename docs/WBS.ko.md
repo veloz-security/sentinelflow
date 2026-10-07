@@ -10,6 +10,10 @@
 >
 > 실행 상태: release stabilization 진행 중. Tasklist completion은 evidence와 prerequisite를 계속 요구함
 
+## 게시된 연구 릴리스 (2026-10-07)
+
+[v0.1.0-rc.1](https://github.com/veloz-security/sentinelflow/releases/tag/v0.1.0-rc.1)을 `1ae56b965355bd82d051a4794db26c72d2bb704d`에서 실험적 연구 prerelease로 게시했다. [Exact-source hosted CI](https://github.com/veloz-security/sentinelflow/actions/runs/37592532654)가 backend, database, frontend, recovery, 새로운 image security evidence 및 결정적 packaging을 포함한 11개 job을 모두 통과했다. 업로드한 asset 5개의 digest와 size는 검증한 local output과 일치한다. 별도 publication/maintenance 범위에서 M9-010, M9-011, M9-012, M9-013, M9-014를 완료했다. 구현 검증 완료 full v0.1의 P0 prerequisite, 최종 acceptance/performance rehearsal 및 release-capture 의무는 open이며 7월 runtime 결과를 새로운 10월 검증으로 바꾸어 주장하지 않는다.
+
 ## 0. 공개 연구 사전 릴리스 작업 (2026-10-07)
 
 소유자가 공개 프로젝트 구조 정리와 릴리스 게시를 요청했다. 이 작업은 `v0.1.0-rc.1`을 실험적 연구 사전 릴리스로 준비하며 구현 검증 완료 v0.1 gate를 완료하지 않는다. 범위는 M9-010, FR-021, NFR-005, NFR-010, NFR-011, ADR-007 및 RELEASE-SMOKE에 연결된다. Runtime과 enforcement contract는 변경하지 않는다.

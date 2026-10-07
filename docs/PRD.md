@@ -14,6 +14,10 @@
 >
 > — [`README.md`](../README.md)
 
+## Published research release (2026-10-07)
+
+[v0.1.0-rc.1](https://github.com/veloz-security/sentinelflow/releases/tag/v0.1.0-rc.1) is published as an experimental research prerelease from `1ae56b965355bd82d051a4794db26c72d2bb704d`. [Exact-source hosted CI](https://github.com/veloz-security/sentinelflow/actions/runs/37592532654) passed all 11 jobs, including backend, database, frontend, recovery, fresh image security evidence, and deterministic packaging. The five uploaded asset digests and sizes match local verified outputs. M9-010, M9-011, M9-012, M9-013, and M9-014 are complete for this separate publication/maintenance scope. Full implementation-qualified v0.1 P0 prerequisites, final acceptance/performance rehearsal and release-capture obligations remain open; July runtime results have not been relabeled as fresh October qualification.
+
 ## Public research distribution checkpoint (2026-10-07)
 
 SentinelFlow is owned by Veloz (벨로즈), whose official site is [sec.veloz.kr](https://sec.veloz.kr); the owner supplied [security@veloz.kr](mailto:security@veloz.kr) as the security contact. The owner requested public restructuring and release publication. `v0.1.0-rc.1` is an experimental research distribution, separate from the implementation-qualified v0.1 release. No production, customer, certification, or CVP approval claim is made. Runtime and enforcement contracts are unchanged.
