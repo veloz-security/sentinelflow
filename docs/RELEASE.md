@@ -4,7 +4,7 @@
 
 ## 1. Release classification
 
-`v0.1.0-rc.1` is an **experimental research prerelease** of SentinelFlow, owned by Veloz (벨로즈). It packages source code and Linux command binaries for inspection and isolated evaluation. It is not a production support commitment, certification, or evidence that all implementation-qualified v0.1 release criteria are complete.
+`v0.1.0-rc.2` is an **experimental research prerelease** of SentinelFlow, owned by Veloz (벨로즈). It packages source code and Linux command binaries for inspection and isolated evaluation. It is not a production support commitment, certification, or evidence that all implementation-qualified v0.1 release criteria are complete.
 
 The [GitHub release record](https://github.com/veloz-security/sentinelflow/releases) is authoritative for publication status, tag, commit, attached checksums, and verification notes. A package or tag alone does not close M9-008. All acceptance and safety gates in the [PRD](./PRD.md), [TDD](./TDD.md), [Tasklist](./TASKLIST.md), and [WBS](./WBS.md) remain in force. The [readiness ledger](./IMPLEMENTATION_READINESS.md) distinguishes historical evidence from outstanding qualification.
 
@@ -12,9 +12,9 @@ The [GitHub release record](https://github.com/veloz-security/sentinelflow/relea
 
 | Artifact | Contents |
 | --- | --- |
-| `sentinelflow-v0.1.0-rc.1-source.tar.gz` | Explicit committed source snapshot under `sentinelflow-v0.1.0-rc.1/` |
-| `sentinelflow-v0.1.0-rc.1-linux-amd64.tar.gz` | Linux amd64 command binaries under `bin/`, license, `THIRD_PARTY_NOTICES.json`, `licenses/`, and release metadata |
-| `sentinelflow-v0.1.0-rc.1-linux-arm64.tar.gz` | Linux arm64 command binaries under `bin/`, license, `THIRD_PARTY_NOTICES.json`, `licenses/`, and release metadata |
+| `sentinelflow-v0.1.0-rc.2-source.tar.gz` | Explicit committed source snapshot under `sentinelflow-v0.1.0-rc.2/` |
+| `sentinelflow-v0.1.0-rc.2-linux-amd64.tar.gz` | Linux amd64 command binaries under `bin/`, license, `THIRD_PARTY_NOTICES.json`, `licenses/`, and release metadata |
+| `sentinelflow-v0.1.0-rc.2-linux-arm64.tar.gz` | Linux arm64 command binaries under `bin/`, license, `THIRD_PARTY_NOTICES.json`, `licenses/`, and release metadata |
 | `RELEASE-INFO.json` | Version, source revision, and build metadata |
 | `SHA256SUMS` | SHA-256 checksums for the packaged artifacts |
 
@@ -37,7 +37,7 @@ Use a disposable Linux environment with at least 4 GB RAM, Docker 24+, Docker Co
 From the published tag:
 
 ```bash
-git clone --branch v0.1.0-rc.1 --depth 1 https://github.com/veloz-security/sentinelflow.git
+git clone --branch v0.1.0-rc.2 --depth 1 https://github.com/veloz-security/sentinelflow.git
 cd sentinelflow
 ./scripts/prepare-demo.sh
 COMPOSE_DISABLE_ENV_FILE=1 OPENAI_API_KEY= docker compose \
@@ -68,7 +68,7 @@ Signed demo-history activation expires after one hour and cannot be renewed in p
 Packaging requires Git, Bash, Python 3.8+, tar, the Go toolchain pinned in `go.mod`, and network access or a populated module cache. Run from a clean committed checkout, including no untracked files, and select a new absolute output directory outside the checkout:
 
 ```bash
-./scripts/build-release.sh v0.1.0-rc.1 /tmp/sentinelflow-v0.1.0-rc.1-artifacts
+./scripts/build-release.sh v0.1.0-rc.2 /tmp/sentinelflow-v0.1.0-rc.2-artifacts
 ```
 
 The output path must not already exist. The source archive comes from the selected Git commit; ignored and untracked local files are excluded. The script builds Linux amd64 and arm64 commands and creates deterministic archives, metadata, and checksums. If `SOURCE_DATE_EPOCH` is supplied, it must match the source commit timestamp. Packaging does not run services, apply a firewall policy, or publish a GitHub release.
@@ -110,3 +110,16 @@ Report ordinary reproducible defects in the repository, with the version and san
 On 2026-10-07 the owner created the company organization [veloz-security](https://github.com/veloz-security). The existing [SentinelFlow](https://github.com/veloz-security/sentinelflow) and [pktide](https://github.com/veloz-security/pktide) repositories were transferred through GitHub's repository-transfer API, without recreating repositories. Both retained their repository IDs, branch/tag commit SHAs, release IDs, pull-request IDs, public visibility, and administrator access. The existing pktide tag and release were preserved. M9-013 records this verification.
 
 SentinelFlow's local `origin` and public repository/release links now use the organization address. The Go module import path remains `github.com/devwooops/sentinelflow` through GitHub's redirect until a separately reviewed module migration. Repository ownership changes do not change runtime or enforcement contracts. The MIT author notice remains intact.
+
+## History rewrite
+
+On 2026-10-07 the owner rewrote the repository history to remove the project-history documents from every commit. Every commit ID changed; code, contracts, and tests are unchanged. The `v0.1.0-rc.1` tag and release were withdrawn and replaced by `v0.1.0-rc.2`. The Go module proxy may still serve the withdrawn `v0.1.0-rc.1`; use `v0.1.0-rc.2`. The organization-transfer statement above about retained commit SHAs describes the state before this rewrite.
+
+CI runs and verification notes recorded before the rewrite cite pre-rewrite commit IDs. They correspond to the rewritten history as follows:
+
+| Pre-rewrite commit | Rewritten commit |
+| --- | --- |
+| `d66c4b8a4842ad4226cb741e35331ba5b9068520` | `5205117ed778a916474acee6e89c2f5ee4389ce9` |
+| `5ef870155bc59e6ac3c30279a7cd8be8d0249887` | `9bb6b72db88f7d22bec2f7e2a2b5bee9bf85c9e7` |
+| `b125adec66864c87f5d37f15049514381dd9e4f3` | `02258b6cc20a9f18c3d6e09f3fe95c59d5aa2bf0` |
+| `1ae56b965355bd82d051a4794db26c72d2bb704d` | `10389d3822383338b09560e9cc517ebe26681a0c` |

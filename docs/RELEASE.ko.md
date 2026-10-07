@@ -4,7 +4,7 @@
 
 ## 1. 릴리스 분류
 
-`v0.1.0-rc.1`은 벨로즈(Veloz) 소유 SentinelFlow의 **실험적 연구 사전 릴리스**다. 검토와 격리된 평가를 위해 소스 코드 및 Linux command binary를 패키징한다. Production 지원 약속, 인증 또는 구현 검증 완료 v0.1 릴리스 기준 전체가 완료됐다는 증거가 아니다.
+`v0.1.0-rc.2`은 벨로즈(Veloz) 소유 SentinelFlow의 **실험적 연구 사전 릴리스**다. 검토와 격리된 평가를 위해 소스 코드 및 Linux command binary를 패키징한다. Production 지원 약속, 인증 또는 구현 검증 완료 v0.1 릴리스 기준 전체가 완료됐다는 증거가 아니다.
 
 게시 상태, tag, commit, 첨부 checksum, 검증 기록의 기준은 [GitHub release 기록](https://github.com/veloz-security/sentinelflow/releases)이다. 패키지 또는 tag만으로 M9-008이 완료되지 않는다. [PRD](./PRD.ko.md), [TDD](./TDD.ko.md), [Tasklist](./TASKLIST.ko.md), [WBS](./WBS.ko.md)의 모든 수용 및 안전 gate는 그대로 유효하다. [Readiness 기록](./IMPLEMENTATION_READINESS.ko.md)은 과거 증거와 남은 검증을 구분한다.
 
@@ -12,9 +12,9 @@
 
 | 산출물 | 내용 |
 | --- | --- |
-| `sentinelflow-v0.1.0-rc.1-source.tar.gz` | `sentinelflow-v0.1.0-rc.1/` 아래 명시적 committed source snapshot |
-| `sentinelflow-v0.1.0-rc.1-linux-amd64.tar.gz` | `bin/` 아래 Linux amd64 command binary, license, `THIRD_PARTY_NOTICES.json`, `licenses/`, release metadata |
-| `sentinelflow-v0.1.0-rc.1-linux-arm64.tar.gz` | `bin/` 아래 Linux arm64 command binary, license, `THIRD_PARTY_NOTICES.json`, `licenses/`, release metadata |
+| `sentinelflow-v0.1.0-rc.2-source.tar.gz` | `sentinelflow-v0.1.0-rc.2/` 아래 명시적 committed source snapshot |
+| `sentinelflow-v0.1.0-rc.2-linux-amd64.tar.gz` | `bin/` 아래 Linux amd64 command binary, license, `THIRD_PARTY_NOTICES.json`, `licenses/`, release metadata |
+| `sentinelflow-v0.1.0-rc.2-linux-arm64.tar.gz` | `bin/` 아래 Linux arm64 command binary, license, `THIRD_PARTY_NOTICES.json`, `licenses/`, release metadata |
 | `RELEASE-INFO.json` | 버전, source revision, build metadata |
 | `SHA256SUMS` | 패키징 산출물의 SHA-256 checksum |
 
@@ -37,7 +37,7 @@ Checksum은 손상을 탐지하며 독립적인 게시자 서명이 아니다. �
 게시된 tag에서 시작한다.
 
 ```bash
-git clone --branch v0.1.0-rc.1 --depth 1 https://github.com/veloz-security/sentinelflow.git
+git clone --branch v0.1.0-rc.2 --depth 1 https://github.com/veloz-security/sentinelflow.git
 cd sentinelflow
 ./scripts/prepare-demo.sh
 COMPOSE_DISABLE_ENV_FILE=1 OPENAI_API_KEY= docker compose \
@@ -68,7 +68,7 @@ COMPOSE_DISABLE_ENV_FILE=1 OPENAI_API_KEY= docker compose \
 패키징에는 Git, Bash, Python 3.8+, tar, `go.mod`에 고정된 Go toolchain, 네트워크 접근 또는 채워진 module cache가 필요하다. Untracked file도 없는 clean committed checkout에서 실행하고 checkout 밖의 새로운 절대 output directory를 선택한다.
 
 ```bash
-./scripts/build-release.sh v0.1.0-rc.1 /tmp/sentinelflow-v0.1.0-rc.1-artifacts
+./scripts/build-release.sh v0.1.0-rc.2 /tmp/sentinelflow-v0.1.0-rc.2-artifacts
 ```
 
 Output path는 이미 존재해서는 안 된다. Source archive는 선택한 Git commit에서 생성하며 ignored 및 untracked local file은 제외한다. Script는 Linux amd64와 arm64 command를 빌드하고 결정적인 archive, metadata, checksum을 만든다. `SOURCE_DATE_EPOCH`를 제공하면 source commit timestamp와 일치해야 한다. 패키징은 service를 실행하거나 firewall policy를 적용하거나 GitHub release를 게시하지 않는다.
@@ -110,3 +110,16 @@ Reference implementation은 하나의 고정 private upstream과 HTTP/1.1, Linux
 2026-10-07 소유자가 회사 조직 [veloz-security](https://github.com/veloz-security)를 생성했다. 기존 [SentinelFlow](https://github.com/veloz-security/sentinelflow)와 [pktide](https://github.com/veloz-security/pktide) repository를 재생성하지 않고 GitHub repository-transfer API로 이전했다. 두 repository의 ID, branch/tag commit SHA, release ID, pull-request ID, 공개 상태 및 administrator 권한이 유지됐다. 기존 pktide tag와 release도 보존했다. M9-013에 이 검증을 기록한다.
 
 SentinelFlow의 local `origin`과 공개 repository/release link는 이제 조직 주소를 사용한다. 별도로 검토한 module migration 전까지 GitHub redirect를 통해 Go module import path `github.com/devwooops/sentinelflow`를 유지한다. Repository 소유권 변경은 runtime 또는 enforcement contract를 변경하지 않는다. MIT 저작자 고지를 보존한다.
+
+## 이력 재작성
+
+2026-10-07 소유자가 모든 commit에서 project-history 문서를 제거하기 위해 저장소 이력을 재작성했다. 모든 commit ID가 바뀌었고 코드, contract, test는 바뀌지 않았다. `v0.1.0-rc.1` tag와 release는 철회했으며 `v0.1.0-rc.2`로 대체했다. Go module proxy는 철회된 `v0.1.0-rc.1`을 계속 제공할 수 있으므로 `v0.1.0-rc.2`를 사용한다. 위 조직 이전 항목의 commit SHA 유지 설명은 이 재작성 이전 상태를 말한다.
+
+재작성 전에 기록한 CI run과 검증 기록은 재작성 전 commit ID를 인용한다. 재작성된 이력과의 대응은 다음과 같다.
+
+| 재작성 전 commit | 재작성된 commit |
+| --- | --- |
+| `d66c4b8a4842ad4226cb741e35331ba5b9068520` | `5205117ed778a916474acee6e89c2f5ee4389ce9` |
+| `5ef870155bc59e6ac3c30279a7cd8be8d0249887` | `9bb6b72db88f7d22bec2f7e2a2b5bee9bf85c9e7` |
+| `b125adec66864c87f5d37f15049514381dd9e4f3` | `02258b6cc20a9f18c3d6e09f3fe95c59d5aa2bf0` |
+| `1ae56b965355bd82d051a4794db26c72d2bb704d` | `10389d3822383338b09560e9cc517ebe26681a0c` |

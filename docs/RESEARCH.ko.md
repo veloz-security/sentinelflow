@@ -4,7 +4,7 @@
 
 SentinelFlow는 **벨로즈(Veloz)** 소유의 MIT 라이선스 방어용 보안 게이트웨이이며 [devwooops/sentinelflow 저장소](https://github.com/veloz-security/sentinelflow)에서 유지보수한다. 회사 웹사이트는 [sec.veloz.kr](https://sec.veloz.kr)이다. 보안 제보는 [SECURITY.md](../SECURITY.md)를 따르거나 [security@veloz.kr](mailto:security@veloz.kr)로 연락한다.
 
-이 문서는 연구자, 평가자, 잠재적 기여자가 검토할 수 있는 엔지니어링 결과를 제시한다. 인증, 고객 배포, 독립 감사 또는 특정 공급사 프로그램의 승인을 주장하지 않는다. 실험적 `v0.1.0-rc.1` 공개는 작업의 재현을 돕지만 구현 검증 완료 v0.1 릴리스 게이트를 완료하지 않는다.
+이 문서는 연구자, 평가자, 잠재적 기여자가 검토할 수 있는 엔지니어링 결과를 제시한다. 인증, 고객 배포, 독립 감사 또는 특정 공급사 프로그램의 승인을 주장하지 않는다. 실험적 `v0.1.0-rc.2` 공개는 작업의 재현을 돕지만 구현 검증 완료 v0.1 릴리스 게이트를 완료하지 않는다.
 
 ## 1. 연구 질문
 

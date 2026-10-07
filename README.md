@@ -5,7 +5,7 @@ Open-source defensive security gateway for evidence-driven detection, incident a
 SentinelFlow is an explainable AI security gateway that observes web traffic through an inline reverse proxy, correlates structured evidence, and applies temporary response actions only after strict validation and administrator HIL approval.
 
 > Status: **Experimental / Early Access.** This experimental research distribution is intended for evaluation; full v0.1 qualification remains open.
-> Research release: [v0.1.0-rc.1](https://github.com/veloz-security/sentinelflow/releases/tag/v0.1.0-rc.1) · [11-job release CI](https://github.com/veloz-security/sentinelflow/actions/runs/37592532654).
+> Research release: [v0.1.0-rc.2](https://github.com/veloz-security/sentinelflow/releases/tag/v0.1.0-rc.2).
 
 **Owner:** [Veloz (벨로즈)](https://sec.veloz.kr) · **Organization:** [veloz-security](https://github.com/veloz-security) · **Repository maintainer:** [@devwooops](https://github.com/devwooops) · **Security contact:** [security@veloz.kr](mailto:security@veloz.kr)
 
@@ -466,7 +466,7 @@ macOS development can run the Gateway, API, worker, dispatcher, database, fronte
 From a fresh clone, generate the local secret/demo bundle and start the deterministic stub-analysis profile:
 
 ```bash
-git clone --branch v0.1.0-rc.1 --depth 1 https://github.com/veloz-security/sentinelflow.git
+git clone --branch v0.1.0-rc.2 --depth 1 https://github.com/veloz-security/sentinelflow.git
 cd sentinelflow
 ./scripts/prepare-demo.sh
 COMPOSE_DISABLE_ENV_FILE=1 OPENAI_API_KEY= docker compose \
