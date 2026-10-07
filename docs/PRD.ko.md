@@ -22,6 +22,8 @@ Implementation checkpoint `b125adec66864c87f5d37f15049514381dd9e4f3`에는 migra
 
 공개 배포용 patch maintenance는 ADR-016을 따른다. Go `1.25.13`, `golang.org/x/text` `v0.39.0` 및 동일 major 내 frontend dependency 수정은 새로운 backend(M9-011) 및 독립 frontend(M9-012) 검증이 필요하다. 기존 safety contract와 full release gate는 유지한다.
 
+Release image evidence 갱신은 ADR-016 아래 M9-014로 추적한다. 2026-10-07 immutable scanner database가 만료된 7월 snapshot을 교체하지만 7일 freshness, critical-vulnerability rejection, digest/metadata verification 및 image binding 요구는 유지한다. 이 package에서 Leaf 3은 scripts/check-images.sh와 scripts/supply-chain-policy{,.test}.mjs만 소유하고 ROOT는 canonical 문서와 최종 게시를 소유한다.
+
 ## 1. 문서 목적과 해석 규칙
 
 이 문서는 `README.md`에 기술된 SentinelFlow의 제품 의도를 구현·검증 가능한 요구사항으로 정리한다. v0.1 목표는 구현 완료된 단일 노드 reference release다. 실제 코드, 영속화, REST/SSE, 브라우저 UI, OpenAI adapter, 격리 nftables 집행, 복구, 성능 및 보안 증거가 함께 동작해야 한다. 이는 production readiness, 고가용성, multi-tenancy 또는 호스트 방화벽 배포를 주장하는 것이 아니다. 현재 구현은 존재하지만 Section 12의 남은 release gate 때문에 complete release를 주장할 수 없다. 이 문서의 요구사항은 다음 기준으로 해석한다.

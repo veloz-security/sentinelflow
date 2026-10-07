@@ -19,6 +19,8 @@ Implementation checkpoint `b125adec66864c87f5d37f15049514381dd9e4f3`에는 migra
 
 공개 배포용 patch maintenance는 ADR-016을 따른다. Go `1.25.13`, `golang.org/x/text` `v0.39.0` 및 동일 major 내 frontend dependency 수정은 새로운 backend(M9-011) 및 독립 frontend(M9-012) 검증이 필요하다. 기존 safety contract와 full release gate는 유지한다.
 
+Release image evidence 갱신은 ADR-016 아래 M9-014로 추적한다. 2026-10-07 immutable scanner database가 만료된 7월 snapshot을 교체하지만 7일 freshness, critical-vulnerability rejection, digest/metadata verification 및 image binding 요구는 유지한다. 이 package에서 Leaf 3은 scripts/check-images.sh와 scripts/supply-chain-policy{,.test}.mjs만 소유하고 ROOT는 canonical 문서와 최종 게시를 소유한다.
+
 ## 1. 목표
 
 SentinelFlow v0.1은 Gateway-first 설명 가능한 보안 시스템이다. Go reverse proxy가 하나의 고정 private upstream으로 트래픽을 전달하면서 HTTP 요청·응답 metadata를 관측한다. 최소화된 근거를 결정론적 규칙이 먼저 상관한 뒤 GPT가 분석한다. GPT는 근거에 바인딩된 `nft-blacklist-v1` command 하나를 제안할 수 있지만, strict validation과 exact artifact에 대한 관리자 HIL 승인만 별도 privileged executor의 임시 실행을 허가할 수 있다.

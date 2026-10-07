@@ -14,11 +14,13 @@ Patch maintenance for public distribution follows ADR-016: Go `1.25.13`, `golang
 
 October verification: M9-011 passed the patched 88-package backend gate, fresh govulncheck, infrastructure contract 25/25, backend image build and an unprivileged read-only/no-network runtime probe. M9-012 passed npm audit (zero findings), 39 Vitest files/363 tests, CSP 1/1, 88 real browser tests, and Linux visual 4/4 after normalizing the optional npm peer. These standalone P1 maintenance tasks do not complete the original P0 prerequisite graph. M9-013 transfer is verified; M9-010 publication remains pending.
 
+Release image evidence refresh is tracked by M9-014 under ADR-016. The 2026-10-07 immutable scanner database replaces the expired July snapshot, while seven-day freshness, critical-vulnerability rejection, digest/metadata verification and image binding remain required. Leaf 3 owns only scripts/check-images.sh and scripts/supply-chain-policy{,.test}.mjs for this package; ROOT owns canonical documentation and final publication.
+
 ## 1. Readiness statement
 
 SentinelFlow has moved from architecture readiness into integrated implementation and release stabilization. The Gateway-first data plane, control-plane services, database, administrator UI, dispatcher/executor boundary, recovery/export/observability tooling, and test harnesses exist in the shared workspace. This is not yet a complete v0.1 release claim.
 
-Tasklist completion remains stricter than code presence. Only `M0-001`, `M0-002`, `M0-009`, `M0-015`, `M0-017`, and `M0-019` currently satisfy all deliverables and prerequisites. Commit `d66c4b8a4842ad4226cb741e35331ba5b9068520` is a published baseline and an external clean clone passed `make check`; hosted CI run `29696139988` passed all ten shards for implementation checkpoint `5ef870155bc59e6ac3c30279a7cd8be8d0249887`, but `M0-006` and `M0-008` remain unchecked because `M0-003` and `M0-007` are unchecked prerequisites. M0 is not complete, and therefore downstream M1–M10 checkboxes remain open even where local implementation evidence is strong.
+Tasklist completion remains stricter than code presence. Within the original P0 graph, only `M0-001`, `M0-002`, `M0-009`, `M0-015`, `M0-017`, and `M0-019` currently satisfy all deliverables and prerequisites. Commit `d66c4b8a4842ad4226cb741e35331ba5b9068520` is a published baseline and an external clean clone passed `make check`; hosted CI run `29696139988` passed all ten shards for implementation checkpoint `5ef870155bc59e6ac3c30279a7cd8be8d0249887`, but `M0-006` and `M0-008` remain unchecked because `M0-003` and `M0-007` are unchecked prerequisites. M0 is not complete, and therefore original downstream P0 M1–M10 checkboxes remain open even where local implementation evidence is strong.
 
 ## 2. Frozen implementation baseline
 
@@ -102,7 +104,7 @@ These blockers must not be bypassed by weakening the accepted contracts or treat
 
 The active wave is release stabilization after RUN25. Final root backend, published PostgreSQL 17.10 33-migration/72-table, frontend CSP/unit/browser, contract-vector, and E2E helper/shell gates have targeted evidence; the previously recorded M34/v2 implementation adds bounded expiry persistence/diagnostics with passing focused unit, contract, and database-chain tests. The published baseline also has clean-clone `make check` evidence and hosted CI run `29696139988` passed all ten shards for `5ef870155bc59e6ac3c30279a7cd8be8d0249887`. A serialized Linux native v6 rerun passed native expiry, host-ruleset invariance, and the 4 GB performance qualification; a one-attempt billable live `openai_responses`/`gpt-5.6-sol` probe returned `status=ok` without control-plane mutation. Remaining goals are current-SHA clean-checkout/CI, release screenshots/submission evidence, and release packaging/decision. Fast Compose browser evidence remains non-release UI proof. The detailed roster, wave ledger, ownership, and final gates are in [WBS.md](./WBS.md).
 
-The current release classification is **Still implementing**. No branch, commit, push, pull request, tag, deployment, billable OpenAI call, or external submission is authorized by this document.
+Full implementation-qualified v0.1 remains **Still implementing**; experimental research distribution follows ADR-015. No branch, commit, push, pull request, tag, deployment, billable OpenAI call, or external submission is authorized by this document.
 
 ## 7. Verification commands
 

@@ -95,7 +95,7 @@ make check-gateway-performance
 
 `make check`는 backend, contract, documentation, frontend, security, supply chain, threshold tuning을 다룬다. `make check-integration`은 database, nftables namespace, image, observability, recovery, export 검사를 다룬다. 마지막 두 명령은 적합한 Linux 환경이 필요하다. E2E gate는 실제 kernel expiry와 host nftables 불변성을 증명해야 하며 기본 performance gate는 5분 4 GB reference run을 요구한다. `--fast` E2E와 performance smoke mode는 개발 증거일 뿐이다. 각 test harness는 자체 disposable resource를 관리하며 실행 전에 선행조건을 살펴본다.
 
-Supply-chain scanner는 2026-07-18 날짜로 고정된 Trivy database를 사용한다. 이 검사를 다시 실행하면 해당 snapshot에 대한 일관성을 확인하며 2026년 10월 현재 취약점 안전성을 보장하지 않는다.
+Supply-chain scanner는 2026-10-07 날짜의 immutable Trivy database snapshot을 사용한다. Digest, database byte 및 metadata를 pin하며 7일보다 오래된 snapshot은 fail closed한다. Finding은 해당 snapshot 기준이며 이후 공개되는 취약점에 대한 보장이 아니다.
 
 실험적 공개는 정확한 source revision에 대해 실행한 검사와 아직 검증하지 않은 검사를 명시해야 한다. 과거 local 결과와 이전 CI run을 현재 release 증거로 자동 승격하지 않는다. 전체 v0.1 검증에는 canonical document의 모든 acceptance, failure/recovery, real-browser, 정제된 release-capture, dependency, final-decision 기준도 필요하다. 연구 패키징은 그 작업을 완료 처리하지 않는다.
 
