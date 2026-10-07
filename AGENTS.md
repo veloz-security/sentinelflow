@@ -162,7 +162,7 @@ The current traceability system is:
 
 - Product requirements: `FR-001` through `FR-026`
 - Non-functional requirements: `NFR-001` through `NFR-014`
-- Architecture decisions: `ADR-001` through `ADR-012`
+- Architecture decisions: `ADR-001` through `ADR-016`
 - TDD tests: `UT-*`, `CT-*`, `IT-*`, `E2E-*`, `SEC-*`, and `REC-*`
 - Work items: milestones `M0` through `M11` and task IDs such as `M5-003`
 
