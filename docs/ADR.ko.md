@@ -685,6 +685,8 @@ ADR-007의 Go patch pin만 대체한다. Go `1.25.13`과 `golang.org/x/text` `v0
 
 배포 전에 patched commit에서 backend unit/framing/recovery test, frontend unit/build/browser check, 최신 dependency advisory, contract vector 및 결정적 packaging을 재실행한다. 7월 frozen image-scanner database의 날짜를 명시적으로 유지하며 새로운 dependency scan이 새로운 image database를 뜻하지 않는다. 이 release prerequisite를 M9-011(backend) 및 M9-012(frontend)로 기록하고 게시를 위해 실패 advisory를 억제하지 않는다.
 
+동일 maintenance에서 더 이상 제공되지 않는 Alpine runtime package revision을 `ca-certificates=20260909-r0` 및 `tzdata=2026e-r0`으로 갱신하며 exact pin과 `nftables=1.1.6-r1`을 유지한다. Linux npm의 optional `@emnapi/runtime` peer를 lockfile에 명시적으로 resolve하며 해당 normalization으로 기존 package version은 변경하지 않는다.
+
 ### Consequences
 
 과거 7월 test evidence는 기록된 toolchain에만 유효하다. 새로운 artifact는 새로운 검증이 필요하다. 이 patch maintenance는 FR-021~FR-026, NFR-002, NFR-005, NFR-010, NFR-011 및 pinned-parser negative-test 의무를 보존한다.
